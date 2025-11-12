@@ -1,7 +1,7 @@
 import { Droplet, Calendar, Coins, ChevronRight, AlertCircle, X, Users, Target, Clock, Activity } from 'lucide-react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 
 interface HomePageProps {
   tokens: number;
@@ -11,6 +11,10 @@ interface HomePageProps {
 export function HomePage({ tokens, onNavigateToCalendar }: HomePageProps) {
   const [selectedCampaign, setSelectedCampaign] = useState<number | null>(null);
   const [selectedDonationType, setSelectedDonationType] = useState<number | null>(null);
+  const [dragY, setDragY] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const startY = useRef(0);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const campaigns = [
     {
@@ -48,54 +52,54 @@ export function HomePage({ tokens, onNavigateToCalendar }: HomePageProps) {
       frequency: 'Cada 2 mesos',
       icon: '🩸',
       color: '#E30613',
-      longDescription: 'La donació de sang total és la més comuna. Es recull aproximadament 450 ml de sang que posteriorment es separa en diferents components: glòbuls vermells, plasma i plaquetes.',
+      longDescription: 'La donació de sang total és la més comuna. Es recull sang completa que després es separa en diferents components (glòbuls vermells, plasma, plaquetes) per ajudar diversos pacients.',
       requirements: [
-        'Pesar més de 50 kg',
-        'Tenir entre 18 i 65 anys',
-        'Estar en bon estat de salut',
-        'No haver donat en els últims 2 mesos'
+        'Més de 18 anys i menys de 65',
+        'Pesar més de 50kg',
+        'No estar embarassada',
+        'Bon estat de salut general'
       ],
       benefits: [
-        'Ajudes a persones amb anèmia',
-        'Essencial per cirurgies',
-        'Crucial en accidents i emergències'
+        'Una donació salva fins a 3 vides',
+        'Essencial per operacions quirúrgiques',
+        'Crucial per accidents i emergències'
       ],
       tokens: 15,
-      process: 'Entrevista mèdica → Extracció (10 min) → Refrigeri'
+      process: 'Registre → Qüestionari → Analítica → Extracció → Refrigeri'
     },
     {
       type: 'Plaquetes',
-      duration: '90 min',
+      duration: '90-120 min',
       frequency: 'Cada 15 dies',
       icon: '💉',
-      color: '#FF6B6B',
-      longDescription: 'La donació de plaquetes és un procés anomenat afèresi. Només es recullen les plaquetes i la resta de components de la sang retornen al donant.',
+      color: '#F39C12',
+      longDescription: 'La donació de plaquetes és un procés més llarg però vital per a pacients amb càncer i malalties de la sang. Les plaquetes s\'obtenen mitjançant un procés anomenat aferesi.',
       requirements: [
-        'Pesar més de 50 kg',
-        'Haver donat sang prèviament',
-        'Bon recompte plaquetari',
-        'Disponibilitat de temps'
+        'Més de 18 anys',
+        'Haver donat sang abans',
+        'Venació adequada',
+        'No prendre aspirina (7 dies abans)'
       ],
       benefits: [
-        'Vital per pacients amb càncer',
-        'Tracta malalties de la sang',
-        'Essencial en quimioteràpia'
+        'Vital per a pacients amb càncer',
+        'Essencial en tractaments de quimioteràpia',
+        'Ajuda en malalties de la sang'
       ],
       tokens: 20,
-      process: 'Valoració → Connexió màquina afèresi → Extracció selectiva'
+      process: 'Analítica prèvia → Connexió aferesi → Extracció plaquetes → Retorn sang'
     },
     {
       type: 'Plasma',
-      duration: '60 min',
+      duration: '45-60 min',
       frequency: 'Cada 15 dies',
-      icon: '💧',
-      color: '#FFA500',
-      longDescription: 'El plasma és la part líquida de la sang. Conté proteïnes, anticossos i factors de coagulació essencials per molts tractaments.',
+      icon: '🧪',
+      color: '#3498DB',
+      longDescription: 'El plasma és la part líquida de la sang que conté proteïnes essencials. És fonamental per a pacients amb cremades greus i trastorns immunitaris.',
       requirements: [
-        'Pesar més de 50 kg',
-        'Bon nivell de proteïnes',
-        'Estar ben hidratat',
-        'No haver donat plasma en 15 dies'
+        'Més de 18 anys',
+        'Pesar més de 50kg',
+        'Bon estat de salut',
+        'No haver tingut hepatitis B o C'
       ],
       benefits: [
         'Tracta malalties immunitàries',
@@ -131,35 +135,68 @@ export function HomePage({ tokens, onNavigateToCalendar }: HomePageProps) {
   const selectedCampaignData = campaigns.find(c => c.id === selectedCampaign);
   const selectedDonationData = donationTypes[selectedDonationType !== null ? selectedDonationType : -1];
 
-  return (
-    <div className="h-full overflow-y-auto">
-      {/* Header */}
-      <div className="bg-[#E30613] text-white p-6 pb-8">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-white">Hola, Maria!</h2>
-            <p className="text-white/90 text-sm mt-1">Estàs apte per donar</p>
-          </div>
-          <div className="bg-white/20 backdrop-blur-sm rounded-2xl px-4 py-2 flex items-center gap-2">
-            <Coins className="w-5 h-5" />
-            <span>{tokens} tokens</span>
-          </div>
-        </div>
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const scrollContainer = scrollContainerRef.current;
+    if (scrollContainer && scrollContainer.scrollTop > 0) {
+      // Si no estem al top, no permetem drag
+      return;
+    }
+    startY.current = e.touches[0].clientY;
+    setIsDragging(true);
+  };
 
-        {/* Next Donation Info */}
-        <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4">
-          <div className="flex items-center gap-3 mb-2">
-            <Calendar className="w-5 h-5" />
-            <span className="text-sm">Propera donació permesa</span>
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging) return;
+    const currentY = e.touches[0].clientY;
+    const diff = currentY - startY.current;
+    // Només arrosseguem cap avall
+    if (diff > 0) {
+      setDragY(diff);
+      // Prevenir scroll mentre arrosseguem
+      e.preventDefault();
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (dragY > 100) {
+      setSelectedCampaign(null);
+      setSelectedDonationType(null);
+    }
+    setDragY(0);
+    setIsDragging(false);
+  };
+
+  return (
+    <div className="h-full overflow-y-auto bg-gray-50 relative">
+      {/* Header with Glass Effect */}
+      <div className="glass-header text-white p-6 pb-8 md:py-8">
+        <div className="max-w-4xl mx-auto md:px-8">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-white">Hola, Maria!</h2>
+              <p className="text-white/90 text-sm mt-1">Estàs apte per donar</p>
+            </div>
+            <div className="bg-white/20 backdrop-blur-md rounded-2xl px-4 py-2.5 flex items-center gap-2 border border-white/30">
+              <Coins className="w-5 h-5" />
+              <span className="font-medium">{tokens} tokens</span>
+            </div>
           </div>
-          <p className="text-white">Ara mateix!</p>
+
+          {/* Next Donation Info */}
+          <div className="bg-white/15 backdrop-blur-md rounded-2xl p-4 border border-white/20">
+            <div className="flex items-center gap-3 mb-2">
+              <Calendar className="w-5 h-5" />
+              <span className="text-sm">Propera donació permesa</span>
+            </div>
+            <p className="text-white font-medium">Ara mateix!</p>
+          </div>
         </div>
       </div>
 
-      <div className="p-6 space-y-6">
+      <div className="p-4 space-y-5 pb-24 md:py-8 max-w-4xl mx-auto md:px-8">
         {/* CTA Button */}
         <Button 
-          className="w-full bg-[#E30613] hover:bg-[#C00510] text-white h-14 shadow-lg"
+          className="w-full bg-[#E30613] hover:bg-[#C00510] text-white h-14 rounded-2xl shadow-lg hover:shadow-xl transition-all hover-lift"
           onClick={onNavigateToCalendar}
         >
           <Calendar className="w-5 h-5 mr-2" />
@@ -168,25 +205,25 @@ export function HomePage({ tokens, onNavigateToCalendar }: HomePageProps) {
 
         {/* Active Campaigns */}
         <section>
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-3 px-1">
             <h3>Campanyes Actives</h3>
             <button className="text-[#E30613] text-sm flex items-center gap-1">
               Veure tot
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
-          <div className="space-y-3">
+          <div className="grid md:grid-cols-2 gap-4">
             {campaigns.map((campaign) => (
               <div 
                 key={campaign.id}
                 onClick={() => setSelectedCampaign(campaign.id)}
-                className="bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-lg transition-shadow cursor-pointer"
+                className="bg-white rounded-2xl overflow-hidden shadow-sm hover-lift cursor-pointer"
               >
                 <div 
-                  className="h-32 bg-cover bg-center relative"
+                  className="h-36 bg-cover bg-center relative"
                   style={{ backgroundImage: `url(${campaign.image})` }}
                 >
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
                   {campaign.urgent && (
                     <Badge className="absolute top-3 right-3 bg-red-500 text-white border-0">
                       <AlertCircle className="w-3 h-3 mr-1" />
@@ -197,17 +234,16 @@ export function HomePage({ tokens, onNavigateToCalendar }: HomePageProps) {
                 <div className="p-4">
                   <h4 className="mb-1">{campaign.title}</h4>
                   <p className="text-sm text-gray-600 mb-3">{campaign.description}</p>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-xs text-gray-600">
-                      <span>Progrés</span>
-                      <span>{campaign.progress}%</span>
-                    </div>
-                    <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-[#E30613] transition-all"
-                        style={{ width: `${campaign.progress}%` }}
-                      />
-                    </div>
+                  
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm text-gray-600">Progrés</span>
+                    <span className="text-sm font-medium">{campaign.current}/{campaign.goal}</span>
+                  </div>
+                  <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-[#E30613] rounded-full transition-all duration-500"
+                      style={{ width: `${campaign.progress}%` }}
+                    />
                   </div>
                 </div>
               </div>
@@ -215,150 +251,138 @@ export function HomePage({ tokens, onNavigateToCalendar }: HomePageProps) {
           </div>
         </section>
 
-        {/* What Can I Donate */}
+        {/* Donation Types */}
         <section>
-          <h3 className="mb-4">Què puc donar?</h3>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="flex items-center justify-between mb-3 px-1">
+            <h3>Tipus de Donacions</h3>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
             {donationTypes.map((donation, index) => (
               <div
                 key={index}
                 onClick={() => setSelectedDonationType(index)}
-                className="bg-white rounded-2xl p-4 shadow-md hover:shadow-lg transition-all cursor-pointer border-2 border-transparent hover:border-[#E30613]"
+                className="bg-white rounded-2xl p-4 cursor-pointer hover-lift"
               >
-                <div 
-                  className="w-12 h-12 rounded-xl flex items-center justify-center mb-3 text-2xl"
-                  style={{ backgroundColor: `${donation.color}15` }}
-                >
-                  {donation.icon}
+                <div className="text-4xl mb-3">{donation.icon}</div>
+                <h4 className="text-sm mb-1">{donation.type}</h4>
+                <p className="text-xs text-gray-600 mb-2">{donation.duration}</p>
+                <div className="flex items-center gap-1 text-[#E30613]">
+                  <Coins className="w-3 h-3" />
+                  <span className="text-xs font-medium">+{donation.tokens} tokens</span>
                 </div>
-                <h4 className="text-sm mb-2">{donation.type}</h4>
-                <p className="text-xs text-gray-600 mb-1">
-                  <Droplet className="w-3 h-3 inline mr-1" />
-                  {donation.duration}
-                </p>
-                <p className="text-xs text-gray-600">
-                  <Calendar className="w-3 h-3 inline mr-1" />
-                  {donation.frequency}
-                </p>
               </div>
             ))}
           </div>
         </section>
 
         {/* Info Banner */}
-        <div className="bg-gradient-to-r from-[#E30613] to-[#FF4444] rounded-2xl p-6 text-white">
+        <div className="bg-gradient-to-r from-[#E30613] to-[#FF4444] rounded-2xl p-5 text-white">
           <h3 className="text-white mb-2">Sabies que...?</h3>
           <p className="text-white/90 text-sm">
-            Cada donació de sang pot salvar fins a <strong>3 vides</strong>. 
-            Amb les teves donacions, has ajudat a salvar 12 persones! 🎉
+            Una sola donació de sang pot salvar fins a 3 vides. El teu gest és imprescindible!
           </p>
         </div>
       </div>
 
       {/* Campaign Detail Modal */}
       {selectedCampaign && selectedCampaignData && (
-        <div className="absolute inset-0 bg-black/50 flex items-end justify-center z-50">
-          <div className="bg-white rounded-t-3xl w-full max-h-[85%] overflow-y-auto">
-            <div className="relative">
-              <div 
-                className="h-56 bg-cover bg-center relative"
-                style={{ backgroundImage: `url(${selectedCampaignData.image})` }}
-              >
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
+        <div 
+          className="fixed inset-0 glass-overlay z-50"
+          onClick={() => setSelectedCampaign(null)}
+        >
+          <div 
+            className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-2xl max-w-2xl mx-auto"
+            style={{ 
+              height: '80%',
+              transform: `translateY(${dragY}px)`,
+              transition: isDragging ? 'none' : 'transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+          >
+            {/* Drag Handle */}
+            <div className="w-full flex justify-center pt-3 pb-2">
+              <div className="w-10 h-1 bg-gray-300 rounded-full" />
+            </div>
+
+            <div ref={scrollContainerRef} className="h-full overflow-y-auto pb-6">
+              <div className="sticky top-0 bg-white/95 backdrop-blur-xl border-b border-gray-100 p-4 flex items-center justify-between z-10">
+                <h3>{selectedCampaignData.title}</h3>
                 <button 
                   onClick={() => setSelectedCampaign(null)}
-                  className="absolute top-4 right-4 w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-white/30 transition-colors"
+                  className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
                 >
-                  <X className="w-6 h-6" />
+                  <X className="w-5 h-5" />
                 </button>
-                {selectedCampaignData.urgent && (
-                  <Badge className="absolute top-4 left-4 bg-red-500 text-white border-0">
-                    <AlertCircle className="w-4 h-4 mr-1" />
-                    Campanya Urgent
-                  </Badge>
-                )}
-                <div className="absolute bottom-4 left-4 right-4">
-                  <h2 className="text-white mb-2">{selectedCampaignData.title}</h2>
-                </div>
               </div>
 
               <div className="p-6 space-y-6">
-                {/* Progress Card */}
-                <div className="bg-gradient-to-br from-[#E30613]/10 to-[#FF4444]/10 rounded-2xl p-5 border-2 border-[#E30613]/20">
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <p className="text-sm text-gray-600 mb-1">Progrés actual</p>
-                      <p className="text-3xl text-[#E30613]">{selectedCampaignData.progress}%</p>
+                <div 
+                  className="h-48 bg-cover bg-center rounded-2xl relative overflow-hidden"
+                  style={{ backgroundImage: `url(${selectedCampaignData.image})` }}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                  {selectedCampaignData.urgent && (
+                    <Badge className="absolute top-3 right-3 bg-red-500 text-white border-0">
+                      <AlertCircle className="w-3 h-3 mr-1" />
+                      Urgent
+                    </Badge>
+                  )}
+                </div>
+
+                <div>
+                  <p className="text-gray-600 mb-4">{selectedCampaignData.longDescription}</p>
+                  
+                  <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Objectiu</span>
+                      <span className="font-medium">{selectedCampaignData.goal} donacions</span>
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm text-gray-600 mb-1">Objectiu</p>
-                      <p className="text-xl">{selectedCampaignData.current}/{selectedCampaignData.goal}</p>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Actual</span>
+                      <span className="font-medium">{selectedCampaignData.current} donacions</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Finalitza</span>
+                      <span className="font-medium">{selectedCampaignData.endDate}</span>
                     </div>
                   </div>
-                  <div className="h-3 bg-white rounded-full overflow-hidden mb-3">
-                    <div 
-                      className="h-full bg-gradient-to-r from-[#E30613] to-[#FF4444] transition-all"
-                      style={{ width: `${selectedCampaignData.progress}%` }}
-                    />
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Users className="w-4 h-4" />
-                    <span>Encara necessitem {selectedCampaignData.goal - selectedCampaignData.current} donacions més!</span>
+
+                  <div className="mt-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm text-gray-600">Progrés</span>
+                      <span className="text-sm font-medium">{selectedCampaignData.progress}%</span>
+                    </div>
+                    <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-gradient-to-r from-[#E30613] to-[#FF4444] rounded-full transition-all duration-500"
+                        style={{ width: `${selectedCampaignData.progress}%` }}
+                      />
+                    </div>
                   </div>
                 </div>
 
-                {/* Description */}
-                <div>
-                  <h3 className="mb-3">Sobre aquesta campanya</h3>
-                  <p className="text-gray-600 leading-relaxed">
-                    {selectedCampaignData.longDescription}
+                <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Coins className="w-5 h-5 text-green-700" />
+                    <span className="font-medium text-green-900">Bonus especial</span>
+                  </div>
+                  <p className="text-sm text-green-800">
+                    +{selectedCampaignData.bonusTokens} tokens extra per donar durant aquesta campanya
                   </p>
                 </div>
 
-                {/* Info Cards */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-green-50 rounded-xl p-4 border border-green-100">
-                    <Coins className="w-6 h-6 text-green-600 mb-2" />
-                    <p className="text-xs text-green-800 mb-1">Bonus tokens</p>
-                    <p className="text-lg text-green-900">+{selectedCampaignData.bonusTokens} extra</p>
-                  </div>
-                  <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
-                    <Target className="w-6 h-6 text-blue-600 mb-2" />
-                    <p className="text-xs text-blue-800 mb-1">Finalitza</p>
-                    <p className="text-lg text-blue-900">{selectedCampaignData.endDate}</p>
-                  </div>
-                </div>
-
-                {/* Important Info */}
-                <div className="bg-yellow-50 rounded-xl p-4 border border-yellow-200">
-                  <h4 className="text-sm text-yellow-900 mb-2">💡 Informació important</h4>
-                  <ul className="text-xs text-yellow-800 space-y-1">
-                    <li>• Tots els tipus de sang són benvinguts</li>
-                    <li>• Rebràs {15 + selectedCampaignData.bonusTokens} tokens per aquesta donació</li>
-                    <li>• Durada aproximada: 30-45 minuts</li>
-                  </ul>
-                </div>
-
-                {/* CTA Buttons */}
-                <div className="space-y-3 pt-2">
-                  <Button 
-                    className="w-full bg-[#E30613] hover:bg-[#C00510] text-white h-14"
-                    onClick={() => {
-                      setSelectedCampaign(null);
-                      onNavigateToCalendar();
-                    }}
-                  >
-                    <Calendar className="w-5 h-5 mr-2" />
-                    Reservar Cita per aquesta Campanya
-                  </Button>
-                  <Button 
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => setSelectedCampaign(null)}
-                  >
-                    Tancar
-                  </Button>
-                </div>
+                <Button 
+                  className="w-full bg-[#E30613] hover:bg-[#C00510] text-white h-12 rounded-xl"
+                  onClick={() => {
+                    setSelectedCampaign(null);
+                    onNavigateToCalendar();
+                  }}
+                >
+                  Reservar Cita Ara
+                </Button>
               </div>
             </div>
           </div>
@@ -367,124 +391,120 @@ export function HomePage({ tokens, onNavigateToCalendar }: HomePageProps) {
 
       {/* Donation Type Detail Modal */}
       {selectedDonationType !== null && selectedDonationData && (
-        <div className="absolute inset-0 bg-black/50 flex items-end justify-center z-50">
-          <div className="bg-white rounded-t-3xl w-full max-h-[90%] overflow-y-auto">
-            <div className="relative">
-              {/* Header */}
-              <div 
-                className="p-6 pb-8 relative"
-                style={{ backgroundColor: `${selectedDonationData.color}15` }}
-              >
+        <div 
+          className="fixed inset-0 glass-overlay z-50"
+          onClick={() => setSelectedDonationType(null)}
+        >
+          <div 
+            className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-2xl max-w-2xl mx-auto"
+            style={{ 
+              height: '80%',
+              transform: `translateY(${dragY}px)`,
+              transition: isDragging ? 'none' : 'transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+          >
+            {/* Drag Handle */}
+            <div className="w-full flex justify-center pt-3 pb-2">
+              <div className="w-10 h-1 bg-gray-300 rounded-full" />
+            </div>
+
+            <div ref={scrollContainerRef} className="h-full overflow-y-auto pb-6">
+              <div className="sticky top-0 bg-white/95 backdrop-blur-xl border-b border-gray-100 p-4 flex items-center justify-between z-10">
+                <h3>{selectedDonationData.type}</h3>
                 <button 
                   onClick={() => setSelectedDonationType(null)}
-                  className="absolute top-4 right-4 w-10 h-10 bg-white rounded-full flex items-center justify-center text-gray-600 hover:bg-gray-100 transition-colors"
+                  className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
                 >
-                  <X className="w-6 h-6" />
+                  <X className="w-5 h-5" />
                 </button>
-                
-                <div className="flex items-center gap-4 mb-4">
-                  <div 
-                    className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl"
-                    style={{ backgroundColor: `${selectedDonationData.color}30` }}
-                  >
-                    {selectedDonationData.icon}
-                  </div>
-                  <div>
-                    <h2 style={{ color: selectedDonationData.color }}>{selectedDonationData.type}</h2>
-                    <div className="flex items-center gap-3 mt-1 text-sm text-gray-600">
-                      <span className="flex items-center gap-1">
-                        <Clock className="w-4 h-4" />
-                        {selectedDonationData.duration}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Activity className="w-4 h-4" />
-                        {selectedDonationData.frequency}
-                      </span>
-                    </div>
-                  </div>
-                </div>
               </div>
 
               <div className="p-6 space-y-6">
-                {/* Description */}
+                <div 
+                  className="rounded-2xl p-8 text-center"
+                  style={{ backgroundColor: `${selectedDonationData.color}15` }}
+                >
+                  <div className="text-6xl mb-3">{selectedDonationData.icon}</div>
+                  <h3 className="mb-2">{selectedDonationData.type}</h3>
+                  <div className="flex items-center justify-center gap-4 text-sm">
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-4 h-4" />
+                      {selectedDonationData.duration}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Calendar className="w-4 h-4" />
+                      {selectedDonationData.frequency}
+                    </span>
+                  </div>
+                </div>
+
                 <div>
-                  <h3 className="mb-3">Què és?</h3>
-                  <p className="text-gray-600 leading-relaxed">
-                    {selectedDonationData.longDescription}
+                  <p className="text-gray-600 mb-4">{selectedDonationData.longDescription}</p>
+                </div>
+
+                <div>
+                  <h4 className="mb-3 flex items-center gap-2">
+                    <AlertCircle className="w-5 h-5 text-[#E30613]" />
+                    Requisits
+                  </h4>
+                  <ul className="space-y-2">
+                    {selectedDonationData.requirements.map((req, index) => (
+                      <li key={index} className="flex items-start gap-2 text-sm">
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#E30613] mt-1.5" />
+                        <span>{req}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div>
+                  <h4 className="mb-3 flex items-center gap-2">
+                    <Target className="w-5 h-5 text-[#E30613]" />
+                    Beneficis
+                  </h4>
+                  <ul className="space-y-2">
+                    {selectedDonationData.benefits.map((benefit, index) => (
+                      <li key={index} className="flex items-start gap-2 text-sm">
+                        <div className="w-1.5 h-1.5 rounded-full bg-green-500 mt-1.5" />
+                        <span>{benefit}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div>
+                  <h4 className="mb-3 flex items-center gap-2">
+                    <Activity className="w-5 h-5 text-[#E30613]" />
+                    Procés
+                  </h4>
+                  <p className="text-sm text-gray-600 bg-gray-50 rounded-xl p-4">
+                    {selectedDonationData.process}
                   </p>
                 </div>
 
-                {/* Tokens Card */}
-                <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl p-5 border-2 border-green-200">
+                <div className="bg-green-50 border border-green-200 rounded-xl p-4">
                   <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-green-800 mb-1">Guanyaràs per donació</p>
-                      <div className="flex items-center gap-2">
-                        <Coins className="w-6 h-6 text-green-600" />
-                        <p className="text-3xl text-green-900">{selectedDonationData.tokens}</p>
-                        <span className="text-green-700">tokens</span>
-                      </div>
+                    <span className="font-medium text-green-900">Recompensa</span>
+                    <div className="flex items-center gap-2">
+                      <Coins className="w-5 h-5 text-green-700" />
+                      <span className="font-medium text-green-900">+{selectedDonationData.tokens} tokens</span>
                     </div>
                   </div>
                 </div>
 
-                {/* Requirements */}
-                <div>
-                  <h3 className="mb-3">Requisits</h3>
-                  <div className="bg-gray-50 rounded-xl p-4 space-y-2">
-                    {selectedDonationData.requirements.map((req, index) => (
-                      <div key={index} className="flex items-start gap-2">
-                        <div className="w-5 h-5 rounded-full bg-[#E30613] flex items-center justify-center flex-shrink-0 mt-0.5">
-                          <span className="text-white text-xs">✓</span>
-                        </div>
-                        <p className="text-sm text-gray-700">{req}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Benefits */}
-                <div>
-                  <h3 className="mb-3">A qui ajudes?</h3>
-                  <div className="space-y-3">
-                    {selectedDonationData.benefits.map((benefit, index) => (
-                      <div key={index} className="flex items-start gap-3 bg-blue-50 rounded-xl p-4 border border-blue-100">
-                        <span className="text-2xl">💙</span>
-                        <p className="text-sm text-blue-900">{benefit}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Process */}
-                <div>
-                  <h3 className="mb-3">Com és el procés?</h3>
-                  <div className="bg-purple-50 rounded-xl p-4 border border-purple-100">
-                    <p className="text-sm text-purple-900">{selectedDonationData.process}</p>
-                  </div>
-                </div>
-
-                {/* CTA Buttons */}
-                <div className="space-y-3 pt-2">
-                  <Button 
-                    className="w-full h-14 text-white"
-                    style={{ backgroundColor: selectedDonationData.color }}
-                    onClick={() => {
-                      setSelectedDonationType(null);
-                      onNavigateToCalendar();
-                    }}
-                  >
-                    <Calendar className="w-5 h-5 mr-2" />
-                    Reservar Donació de {selectedDonationData.type}
-                  </Button>
-                  <Button 
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => setSelectedDonationType(null)}
-                  >
-                    Tancar
-                  </Button>
-                </div>
+                <Button 
+                  className="w-full bg-[#E30613] hover:bg-[#C00510] text-white h-12 rounded-xl"
+                  onClick={() => {
+                    setSelectedDonationType(null);
+                    onNavigateToCalendar();
+                  }}
+                >
+                  Reservar Cita Ara
+                </Button>
               </div>
             </div>
           </div>
