@@ -147,8 +147,8 @@ export function LoginPage() {
         {/* Mobile version */}
         <div className="md:hidden flex-1 flex flex-col items-center justify-center px-8 pb-20 max-w-md mx-auto w-full">
           <div className="relative mb-8">
-            <div className="absolute inset-0 bg-[#E30613]/20 blur-3xl rounded-full" />
-            <div className="relative w-32 h-32 bg-gradient-to-br from-[#E30613] to-[#FF4444] rounded-[2.5rem] flex items-center justify-center shadow-2xl">
+            <div className="absolute inset-0 bg-brand-600/20 blur-3xl rounded-full" />
+            <div className="relative w-32 h-32 bg-gradient-to-br from-brand-600 to-brand-500 rounded-[2.5rem] flex items-center justify-center shadow-2xl">
               <Droplet className="w-16 h-16 text-white" />
             </div>
           </div>
@@ -161,7 +161,8 @@ export function LoginPage() {
           <div className="w-full space-y-3">
             <Button
               onClick={() => setView('signup')}
-              className="w-full h-14 bg-[#E30613] hover:bg-[#C00510] text-white rounded-2xl shadow-lg shadow-[#E30613]/25 transition-all"
+              variant="brand"
+              className="w-full h-14 rounded-2xl transition-all"
             >
               Crear compte
             </Button>
@@ -178,13 +179,13 @@ export function LoginPage() {
         {/* Desktop version */}
         <div className="hidden md:block w-full max-w-3xl mx-auto p-8">
           <div className="relative">
-            <div className="absolute inset-0 bg-[#E30613]/20 blur-[100px] rounded-full scale-110" />
+            <div className="absolute inset-0 bg-brand-600/20 blur-[100px] rounded-full scale-110" />
 
             <div className="relative bg-white rounded-3xl shadow-2xl p-12">
               <div className="flex flex-col items-center">
                 <div className="relative mb-8">
-                  <div className="absolute inset-0 bg-[#E30613]/20 blur-3xl rounded-full" />
-                  <div className="relative w-24 h-24 bg-gradient-to-br from-[#E30613] to-[#FF4444] rounded-3xl flex items-center justify-center shadow-xl">
+                  <div className="absolute inset-0 bg-brand-600/20 blur-3xl rounded-full" />
+                  <div className="relative w-24 h-24 bg-gradient-to-br from-brand-600 to-brand-500 rounded-3xl flex items-center justify-center shadow-xl">
                     <Droplet className="w-12 h-12 text-white" />
                   </div>
                 </div>
@@ -197,7 +198,8 @@ export function LoginPage() {
                 <div className="w-full space-y-3">
                   <Button
                     onClick={() => setView('signup')}
-                    className="w-full h-14 bg-[#E30613] hover:bg-[#C00510] text-white rounded-2xl shadow-lg shadow-[#E30613]/25 transition-all"
+                    variant="brand"
+                    className="w-full h-14 rounded-2xl transition-all"
                   >
                     Crear compte
                   </Button>
@@ -288,7 +290,8 @@ export function LoginPage() {
                 <Button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full h-14 bg-[#E30613] hover:bg-[#C00510] text-white rounded-2xl shadow-lg"
+                  variant="brand"
+                  className="w-full h-14 rounded-2xl"
                 >
                   {isLoading ? (
                     <>
@@ -305,7 +308,7 @@ export function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setView('signup')}
-                    className="text-[#E30613] font-medium"
+                    className="text-brand-600 font-medium"
                   >
                     Registra't
                   </button>
@@ -371,7 +374,8 @@ export function LoginPage() {
                 <Button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full h-14 bg-[#E30613] hover:bg-[#C00510] text-white rounded-2xl shadow-lg"
+                  variant="brand"
+                  className="w-full h-14 rounded-2xl"
                 >
                   {isLoading ? (
                     <>
@@ -388,7 +392,7 @@ export function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setView('signup')}
-                    className="text-[#E30613] font-medium"
+                    className="text-brand-600 font-medium"
                   >
                     Registra't
                   </button>
@@ -497,7 +501,8 @@ export function LoginPage() {
               <div className="mt-auto">
                 <Button
                   type="submit"
-                  className="w-full h-14 bg-[#E30613] hover:bg-[#C00510] text-white rounded-2xl shadow-lg"
+                  variant="brand"
+                  className="w-full h-14 rounded-2xl"
                 >
                   Continuar
                   <ChevronRight className="w-5 h-5 ml-2" />
@@ -508,7 +513,7 @@ export function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setView('login')}
-                    className="text-[#E30613] font-medium"
+                    className="text-brand-600 font-medium"
                   >
                     Inicia sessió
                   </button>
@@ -603,7 +608,8 @@ export function LoginPage() {
 
                 <Button
                   type="submit"
-                  className="w-full h-14 bg-[#E30613] hover:bg-[#C00510] text-white rounded-2xl shadow-lg"
+                  variant="brand"
+                  className="w-full h-14 rounded-2xl"
                 >
                   Continuar
                   <ChevronRight className="w-5 h-5 ml-2" />
@@ -614,7 +620,7 @@ export function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setView('login')}
-                    className="text-[#E30613] font-medium"
+                    className="text-brand-600 font-medium"
                   >
                     Inicia sessió
                   </button>
@@ -718,7 +724,7 @@ export function LoginPage() {
                       type="button"
                       onClick={() => setSignupData({ ...signupData, hasDonatedBefore: 'yes' })}
                       className={`flex-1 h-14 rounded-2xl border-2 transition-all ${signupData.hasDonatedBefore === 'yes'
-                        ? 'bg-[#E30613] border-[#E30613] text-white'
+                        ? 'bg-brand-600 border-brand-600 text-white'
                         : 'border-gray-200 hover:border-gray-300'
                         }`}
                     >
@@ -728,7 +734,7 @@ export function LoginPage() {
                       type="button"
                       onClick={() => setSignupData({ ...signupData, hasDonatedBefore: 'no' })}
                       className={`flex-1 h-14 rounded-2xl border-2 transition-all ${signupData.hasDonatedBefore === 'no'
-                        ? 'bg-[#E30613] border-[#E30613] text-white'
+                        ? 'bg-brand-600 border-brand-600 text-white'
                         : 'border-gray-200 hover:border-gray-300'
                         }`}
                     >
@@ -750,7 +756,8 @@ export function LoginPage() {
                 <Button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full h-14 bg-[#E30613] hover:bg-[#C00510] text-white rounded-2xl shadow-lg"
+                  variant="brand"
+                  className="w-full h-14 rounded-2xl"
                 >
                   {isLoading ? (
                     <>
@@ -770,7 +777,7 @@ export function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setView('login')}
-                    className="text-[#E30613] font-medium"
+                    className="text-brand-600 font-medium"
                   >
                     Inicia sessió
                   </button>
@@ -861,7 +868,7 @@ export function LoginPage() {
                         type="button"
                         onClick={() => setSignupData({ ...signupData, hasDonatedBefore: 'yes' })}
                         className={`flex-1 h-14 rounded-2xl border-2 transition-all ${signupData.hasDonatedBefore === 'yes'
-                          ? 'bg-[#E30613] border-[#E30613] text-white'
+                          ? 'bg-brand-600 border-brand-600 text-white'
                           : 'border-gray-200 hover:border-gray-300'
                           }`}
                       >
@@ -871,7 +878,7 @@ export function LoginPage() {
                         type="button"
                         onClick={() => setSignupData({ ...signupData, hasDonatedBefore: 'no' })}
                         className={`flex-1 h-14 rounded-2xl border-2 transition-all ${signupData.hasDonatedBefore === 'no'
-                          ? 'bg-[#E30613] border-[#E30613] text-white'
+                          ? 'bg-brand-600 border-brand-600 text-white'
                           : 'border-gray-200 hover:border-gray-300'
                           }`}
                       >
@@ -892,7 +899,7 @@ export function LoginPage() {
                 <Button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full h-14 bg-[#E30613] hover:bg-[#C00510] text-white rounded-2xl shadow-lg"
+                  className="w-full h-14 bg-brand-600 hover:bg-brand-700 text-white rounded-2xl shadow-lg"
                 >
                   {isLoading ? (
                     <>
@@ -912,7 +919,7 @@ export function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setView('login')}
-                    className="text-[#E30613] font-medium"
+                    className="text-brand-600 font-medium"
                   >
                     Inicia sessió
                   </button>

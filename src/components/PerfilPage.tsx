@@ -88,7 +88,7 @@ export function PerfilPage() {
           <div className="p-4 space-y-3 pb-24">
             {loadingDonations ? (
               <div className="flex items-center justify-center p-8">
-                <Loader2 className="w-8 h-8 animate-spin text-[#E30613]" />
+                <Loader2 className="w-8 h-8 animate-spin text-brand-600" />
               </div>
             ) : donationHistory.length === 0 ? (
               <div className="text-center p-8 text-gray-500">
@@ -121,7 +121,7 @@ export function PerfilPage() {
               ))
             )}
 
-            <div className="bg-gradient-to-r from-[#E30613] to-[#FF4444] rounded-2xl p-6 text-white text-center">
+            <div className="bg-gradient-to-r from-brand-600 to-brand-500 rounded-2xl p-6 text-white text-center">
               <Heart className="w-12 h-12 mx-auto mb-3 text-white" />
               <h3 className="text-white mb-2">Gràcies pel teu compromís!</h3>
               <p className="text-white/90 text-sm">
@@ -154,7 +154,7 @@ export function PerfilPage() {
                   </div>
                   <button
                     type="button"
-                    className={`w-12 h-6 rounded-full relative transition-all ${notifications.appointments ? 'bg-[#E30613]' : 'bg-gray-300'
+                    className={`w-12 h-6 rounded-full relative transition-all ${notifications.appointments ? 'bg-brand-600' : 'bg-gray-300'
                       }`}
                     onClick={() => setNotifications({ ...notifications, appointments: !notifications.appointments })}
                   >
@@ -169,7 +169,7 @@ export function PerfilPage() {
                   </div>
                   <button
                     type="button"
-                    className={`w-12 h-6 rounded-full relative transition-all ${notifications.urgent ? 'bg-[#E30613]' : 'bg-gray-300'
+                    className={`w-12 h-6 rounded-full relative transition-all ${notifications.urgent ? 'bg-brand-600' : 'bg-gray-300'
                       }`}
                     onClick={() => setNotifications({ ...notifications, urgent: !notifications.urgent })}
                   >
@@ -184,7 +184,7 @@ export function PerfilPage() {
                   </div>
                   <button
                     type="button"
-                    className={`w-12 h-6 rounded-full relative transition-all ${notifications.rewards ? 'bg-[#E30613]' : 'bg-gray-300'
+                    className={`w-12 h-6 rounded-full relative transition-all ${notifications.rewards ? 'bg-brand-600' : 'bg-gray-300'
                       }`}
                     onClick={() => setNotifications({ ...notifications, rewards: !notifications.rewards })}
                   >
@@ -244,9 +244,8 @@ export function PerfilPage() {
       <>
         {/* Profile Header with Glass Effect */}
         <div
-          className="text-white p-6 pb-8"
+          className="text-white p-6 pb-8 bg-brand-600/95"
           style={{
-            backgroundColor: 'rgba(227, 6, 19, 0.95)',
             backdropFilter: 'saturate(180%) blur(20px)',
             WebkitBackdropFilter: 'saturate(180%) blur(20px)',
           }}
@@ -291,150 +290,96 @@ export function PerfilPage() {
           </div>
         </div>
 
-        <div className="p-4 space-y-5 pb-24">
+        <div className="p-4 space-y-6 pb-24 -mt-4 relative z-10">
           {/* Quick Actions */}
-          <section>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setActiveSection('history')}
-                className="bg-white p-4 rounded-2xl shadow-sm hover:shadow-md transition-all text-left"
-              >
-                <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center mb-3">
-                  <Calendar className="w-5 h-5 text-[#E30613]" />
-                </div>
-                <h3 className="font-medium text-sm">Historial</h3>
-                <p className="text-xs text-gray-500">Veure donacions</p>
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowShareDialog(true)}
-                className="bg-white p-4 rounded-2xl shadow-sm hover:shadow-md transition-all text-left"
-              >
-                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mb-3">
-                  <User className="w-5 h-5 text-blue-600" />
-                </div>
-                <h3 className="font-medium text-sm">Convidar amics</h3>
-                <p className="text-xs text-gray-500">Guanya tokens</p>
-              </button>
-            </div>
-          </section>
+          <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex justify-between">
+            <button onClick={() => navigate('/app/mapa')} className="flex flex-col items-center gap-2">
+              <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center text-brand-600">
+                <Heart className="w-6 h-6" />
+              </div>
+              <span className="text-xs font-medium text-gray-600">Donar</span>
+            </button>
+            <button onClick={() => setActiveSection('history')} className="flex flex-col items-center gap-2">
+              <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center text-blue-600">
+                <Calendar className="w-6 h-6" />
+              </div>
+              <span className="text-xs font-medium text-gray-600">Historial</span>
+            </button>
+            <button onClick={() => setShowShareDialog(true)} className="flex flex-col items-center gap-2">
+              <div className="w-12 h-12 bg-purple-50 rounded-full flex items-center justify-center text-purple-600">
+                <User className="w-6 h-6" />
+              </div>
+              <span className="text-xs font-medium text-gray-600">Convidar</span>
+            </button>
+            <button onClick={() => setActiveSection('settings')} className="flex flex-col items-center gap-2">
+              <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center text-gray-600">
+                <Settings className="w-6 h-6" />
+              </div>
+              <span className="text-xs font-medium text-gray-600">Ajustos</span>
+            </button>
+          </div>
 
           {/* Analytics Charts */}
-          <section>
-            <h3 className="font-medium mb-3 px-1">Estadístiques</h3>
-            {loadingAnalytics ? (
-              <div className="flex items-center justify-center p-8 bg-white rounded-2xl shadow-sm">
-                <Loader2 className="w-8 h-8 animate-spin text-[#E30613]" />
-              </div>
-            ) : (
-              <div className="bg-white p-4 rounded-2xl shadow-sm space-y-6">
-                <div>
-                  <h4 className="text-xs text-gray-500 mb-4 uppercase tracking-wider">Evolució de donacions</h4>
-                  <div className="h-48">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={donationTrendData}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-                        <XAxis
-                          dataKey="month"
-                          axisLine={false}
-                          tickLine={false}
-                          tick={{ fontSize: 10, fill: '#9CA3AF' }}
-                        />
-                        <YAxis
-                          axisLine={false}
-                          tickLine={false}
-                          tick={{ fontSize: 10, fill: '#9CA3AF' }}
-                        />
-                        <Tooltip content={<CustomTooltip />} />
-                        <Line
-                          type="monotone"
-                          dataKey="donations"
-                          stroke="#E30613"
-                          strokeWidth={3}
-                          dot={{ fill: '#E30613', strokeWidth: 2, r: 4, stroke: '#fff' }}
-                          activeDot={{ r: 6, strokeWidth: 0 }}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
+          <div className="space-y-4">
+            <h3 className="font-semibold text-gray-900">Estadístiques</h3>
 
-                <div>
-                  <h4 className="text-xs text-gray-500 mb-4 uppercase tracking-wider">Tokens guanyats</h4>
-                  <div className="h-48">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={monthlyTokensData}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-                        <XAxis
-                          dataKey="month"
-                          axisLine={false}
-                          tickLine={false}
-                          tick={{ fontSize: 10, fill: '#9CA3AF' }}
-                        />
-                        <YAxis
-                          axisLine={false}
-                          tickLine={false}
-                          tick={{ fontSize: 10, fill: '#9CA3AF' }}
-                        />
-                        <Tooltip
-                          content={<CustomTooltip />}
-                          cursor={{ fill: 'rgba(227, 6, 19, 0.1)' }}
-                        />
-                        <Bar
-                          dataKey="tokens"
-                          fill="#E30613"
-                          radius={[4, 4, 0, 0]}
-                          barSize={20}
-                        />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
+            <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+              <h4 className="text-sm text-gray-500 mb-4">Evolució de donacions</h4>
+              <div className="h-48 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={donationTrendData}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                    <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#9ca3af' }} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#9ca3af' }} />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Line type="monotone" dataKey="count" stroke="#e11d48" strokeWidth={3} dot={{ fill: '#e11d48', strokeWidth: 2, r: 4, stroke: '#fff' }} activeDot={{ r: 6, strokeWidth: 0 }} />
+                  </LineChart>
+                </ResponsiveContainer>
               </div>
-            )}
-          </section>
+            </div>
+
+            <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
+              <h4 className="text-sm text-gray-500 mb-4">Tokens guanyats</h4>
+              <div className="h-48 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={monthlyTokensData}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                    <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#9ca3af' }} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#9ca3af' }} />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Bar dataKey="tokens" fill="#e11d48" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
 
           {/* Achievements */}
-          <section>
-            <h3 className="font-medium mb-3 px-1">Assoliments</h3>
-            <div className="grid grid-cols-2 gap-3">
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-gray-900">Assoliments</h3>
+              <button className="text-sm text-brand-600 font-medium">Veure tot</button>
+            </div>
+            <div className="flex gap-4 overflow-x-auto pb-4 -mx-4 px-4 scrollbar-hide">
               {achievements.map((achievement) => (
-                <div
-                  key={achievement.id}
-                  className={`p-4 rounded-2xl border-2 transition-all ${achievement.unlocked
-                    ? 'bg-white border-[#E30613]/10 shadow-sm'
-                    : 'bg-gray-50 border-transparent opacity-60 grayscale'
-                    }`}
-                >
-                  <div className="text-3xl mb-2">{achievement.icon}</div>
-                  <h4 className="text-sm font-medium mb-1">{achievement.name}</h4>
-                  <p className="text-xs text-gray-500">
-                    {achievement.unlocked ? 'Desbloquejat!' : 'Bloquejat'}
-                  </p>
+                <div key={achievement.id} className={`flex-shrink-0 w-32 p-4 rounded-2xl border ${achievement.unlocked ? 'bg-white border-gray-100 shadow-sm' : 'bg-gray-50 border-gray-100 opacity-60'}`}>
+                  <div className="text-2xl mb-2">{achievement.icon}</div>
+                  <p className="text-xs font-medium text-gray-900 mb-1">{achievement.name}</p>
+                  <p className="text-[10px] text-gray-500">{achievement.unlocked ? 'Desbloquejat' : 'Bloquejat'}</p>
                 </div>
               ))}
             </div>
-          </section>
-
-          <Button
-            variant="ghost"
-            className="w-full text-gray-500 hover:text-gray-700 h-12"
-            onClick={() => setActiveSection('settings')}
-          >
-            <Settings className="w-4 h-4 mr-2" />
-            Més opcions
-          </Button>
+          </div>
         </div>
       </>
     );
   };
 
   return (
-    <div className="h-full overflow-y-auto bg-gray-50">
+    <div className="min-h-screen bg-gray-50">
       {renderContent()}
 
-      {/* Privacy Dialog */}
+      {/* Dialogs */}
       <Dialog open={showPrivacyDialog} onOpenChange={setShowPrivacyDialog}>
         <DialogContent className="sm:max-w-md max-h-[80vh] overflow-y-auto">
           <DialogHeader>
@@ -525,12 +470,12 @@ export function PerfilPage() {
           <div className="flex items-center space-x-2 mt-4">
             <div className="grid flex-1 gap-2">
               <div className="flex items-center justify-between bg-gray-100 p-3 rounded-lg">
-                <code className="text-sm font-mono font-bold text-[#E30613]">DONA-{user?.name?.substring(0, 3).toUpperCase() || 'USR'}2024</code>
+                <code className="text-sm font-mono font-bold text-brand-600">DONA-{user?.name?.substring(0, 3).toUpperCase() || 'USR'}2024</code>
                 <Button
                   size="sm"
                   variant="ghost"
                   onClick={() => {
-                    navigator.clipboard.writeText(`DONA-${user?.name?.substring(0, 3).toUpperCase() || 'USR'}2024`);
+                    navigator.clipboard.writeText(`DONA - ${user?.name?.substring(0, 3).toUpperCase() || 'USR'}2024`);
                     toast.success('Codi copiat!');
                   }}
                 >
