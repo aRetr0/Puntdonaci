@@ -1,13 +1,18 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Droplet, Trophy, Calendar, ChevronRight } from 'lucide-react';
 import { Button } from './ui/button';
+import { useAuthStore } from '@/stores/authStore';
 
-interface OnboardingFlowProps {
-  onComplete: () => void;
-}
-
-export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
+export function OnboardingFlow() {
+  const navigate = useNavigate();
+  const { completeOnboarding } = useAuthStore();
   const [step, setStep] = useState(0);
+
+  const handleComplete = () => {
+    completeOnboarding();
+    navigate('/app/home');
+  };
 
   const screens = [
     {
@@ -30,7 +35,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     }
   ];
 
-  const currentScreen = screens[step];
+  const currentScreen = screens[step] ?? screens[0]!;
   const Icon = currentScreen.icon;
 
   return (
@@ -89,7 +94,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                 <ChevronRight className="w-5 h-5 ml-2" />
               </Button>
               <Button
-                onClick={onComplete}
+                onClick={handleComplete}
                 variant="ghost"
                 className="w-full text-gray-600"
               >
@@ -98,7 +103,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             </>
           ) : (
             <Button
-              onClick={onComplete}
+              onClick={handleComplete}
               className="w-full bg-[#E30613] hover:bg-[#C00510] text-white h-14"
             >
               Començar
@@ -156,7 +161,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                     <ChevronRight className="w-5 h-5 ml-2" />
                   </Button>
                   <Button
-                    onClick={onComplete}
+                    onClick={handleComplete}
                     variant="ghost"
                     className="w-full text-gray-600"
                   >
@@ -165,7 +170,7 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                 </>
               ) : (
                 <Button
-                  onClick={onComplete}
+                  onClick={handleComplete}
                   className="w-full bg-[#E30613] hover:bg-[#C00510] text-white h-14"
                 >
                   Començar

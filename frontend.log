@@ -1,0 +1,17 @@
+
+> puntdonacio@0.1.0 dev
+> vite
+
+
+  VITE v6.3.5  ready in 339 ms
+
+  ➜  Local:   http://localhost:3000/
+  ➜  Network: use --host to expose
+8:05:17 PM [vite] (client) hmr update /src/router/ProtectedRoute.tsx, /src/layouts/MainLayout.tsx, /src/components/OnboardingFlow.tsx, /src/components/RecompensesPage.tsx, /src/components/HomePage.tsx, /src/components/LoginPage.tsx, /src/components/PerfilPage.tsx, /src/components/CalendariPage.tsx
+8:11:22 PM [vite] (client) hmr update /src/router/ProtectedRoute.tsx, /src/layouts/MainLayout.tsx, /src/components/OnboardingFlow.tsx, /src/components/RecompensesPage.tsx, /src/components/HomePage.tsx, /src/components/LoginPage.tsx, /src/components/PerfilPage.tsx, /src/components/CalendariPage.tsx
+8:12:17 PM [vite] (client) hmr update /src/router/ProtectedRoute.tsx, /src/layouts/MainLayout.tsx, /src/components/OnboardingFlow.tsx, /src/components/RecompensesPage.tsx, /src/components/HomePage.tsx, /src/components/LoginPage.tsx, /src/components/PerfilPage.tsx, /src/components/CalendariPage.tsx
+8:19:26 PM [vite] vite.config.ts changed, restarting server...
+8:19:26 PM [vite] (client) Re-optimizing dependencies because lockfile has changed
+8:19:26 PM [vite] server restarted.
+8:19:32 PM [vite] (client) page reload src/main.tsx
+8:19:45 PM [vite] (client) hmr update /src/index.css

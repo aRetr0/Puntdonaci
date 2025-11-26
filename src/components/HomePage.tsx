@@ -1,49 +1,25 @@
-import { Droplet, Calendar, Coins, ChevronRight, AlertCircle, X, Users, Target, Clock, Activity } from 'lucide-react';
+import { Calendar, Coins, ChevronRight, AlertCircle, X, Target, Clock, Activity, Loader2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '@/stores/authStore';
+import { useActiveCampaigns } from '@/hooks';
+import type { Campaign } from '@/types';
 
-interface HomePageProps {
-  tokens: number;
-  onNavigateToCalendar: () => void;
-}
+export function HomePage() {
+  const navigate = useNavigate();
+  const { user } = useAuthStore();
+  const { data: campaignsResponse, isLoading: loadingCampaigns, error: campaignsError } = useActiveCampaigns();
 
-export function HomePage({ tokens, onNavigateToCalendar }: HomePageProps) {
-  const [selectedCampaign, setSelectedCampaign] = useState<number | null>(null);
+  const [selectedCampaign, setSelectedCampaign] = useState<string | null>(null);
   const [selectedDonationType, setSelectedDonationType] = useState<number | null>(null);
   const [dragY, setDragY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const startY = useRef(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  const campaigns = [
-    {
-      id: 1,
-      title: 'Campanya de Sant Jordi',
-      description: 'Ajuda\'ns a arribar a 500 donacions',
-      longDescription: 'Aquest Sant Jordi, necessitem la teva col·laboració per arribar a 500 donacions de sang. Cada rosa que regales pot anar acompanyada d\'un gest que salva vides.',
-      progress: 73,
-      current: 365,
-      goal: 500,
-      urgent: false,
-      image: 'https://images.unsplash.com/photo-1615461066841-6116e61058f4?w=800&auto=format&fit=crop',
-      bonusTokens: 5,
-      endDate: '23 d\'Abril'
-    },
-    {
-      id: 2,
-      title: 'Reserves baixes de O-',
-      description: 'Necessitem la teva ajuda urgentment',
-      longDescription: 'Les reserves de sang del tipus O negatiu estan en nivells crítics. Aquest tipus de sang és universal i pot salvar qualsevol persona en una emergència.',
-      progress: 34,
-      current: 68,
-      goal: 200,
-      urgent: true,
-      image: 'https://images.unsplash.com/photo-1631815589968-fdb09a223b1e?w=800&auto=format&fit=crop',
-      bonusTokens: 10,
-      endDate: 'Urgent'
-    }
-  ];
+  const campaigns = (campaignsResponse as any)?.data || [];
 
   const donationTypes = [
     {
@@ -132,8 +108,12 @@ export function HomePage({ tokens, onNavigateToCalendar }: HomePageProps) {
     }
   ];
 
-  const selectedCampaignData = campaigns.find(c => c.id === selectedCampaign);
-  const selectedDonationData = donationTypes[selectedDonationType !== null ? selectedDonationType : -1];
+  const selectedCampaignData = campaigns.find((c: Campaign) => c.id === selectedCampaign);
+  const selectedDonationData = selectedDonationType !== null ? donationTypes[selectedDonationType] : undefined;
+
+  const handleNavigateToCalendar = () => {
+    navigate('/app/calendari');
+  };
 
   const handleTouchStart = (e: React.TouchEvent) => {
     const scrollContainer = scrollContainerRef.current;
@@ -141,12 +121,14 @@ export function HomePage({ tokens, onNavigateToCalendar }: HomePageProps) {
       // Si no estem al top, no permetem drag
       return;
     }
-    startY.current = e.touches[0].clientY;
-    setIsDragging(true);
+    if (e.touches[0]) {
+      startY.current = e.touches[0].clientY;
+      setIsDragging(true);
+    }
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isDragging) return;
+    if (!isDragging || !e.touches[0]) return;
     const currentY = e.touches[0].clientY;
     const diff = currentY - startY.current;
     // Només arrosseguem cap avall
@@ -173,12 +155,12 @@ export function HomePage({ tokens, onNavigateToCalendar }: HomePageProps) {
         <div className="max-w-4xl mx-auto md:px-8">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-white">Hola, Maria!</h2>
+              <h2 className="text-white">Hola, {user?.name?.split(' ')[0] || 'usuari'}!</h2>
               <p className="text-white/90 text-sm mt-1">Estàs apte per donar</p>
             </div>
             <div className="bg-white/20 backdrop-blur-md rounded-2xl px-4 py-2.5 flex items-center gap-2 border border-white/30">
               <Coins className="w-5 h-5" />
-              <span className="font-medium">{tokens} tokens</span>
+              <span className="font-medium">{user?.tokens || 0} tokens</span>
             </div>
           </div>
 
@@ -195,9 +177,9 @@ export function HomePage({ tokens, onNavigateToCalendar }: HomePageProps) {
 
       <div className="p-4 space-y-5 pb-24 md:py-8 max-w-4xl mx-auto md:px-8">
         {/* CTA Button */}
-        <Button 
+        <Button
           className="w-full bg-[#E30613] hover:bg-[#C00510] text-white h-14 rounded-2xl shadow-lg hover:shadow-xl transition-all hover-lift"
-          onClick={onNavigateToCalendar}
+          onClick={handleNavigateToCalendar}
         >
           <Calendar className="w-5 h-5 mr-2" />
           Reservar Cita Ara
@@ -212,43 +194,61 @@ export function HomePage({ tokens, onNavigateToCalendar }: HomePageProps) {
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
-          <div className="grid md:grid-cols-2 gap-4">
-            {campaigns.map((campaign) => (
-              <div 
-                key={campaign.id}
-                onClick={() => setSelectedCampaign(campaign.id)}
-                className="bg-white rounded-2xl overflow-hidden shadow-sm hover-lift cursor-pointer"
-              >
-                <div 
-                  className="h-36 bg-cover bg-center relative"
-                  style={{ backgroundImage: `url(${campaign.image})` }}
-                >
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-                  {campaign.urgent && (
-                    <Badge className="absolute top-3 right-3 bg-red-500 text-white border-0">
-                      <AlertCircle className="w-3 h-3 mr-1" />
-                      Urgent
-                    </Badge>
-                  )}
-                </div>
-                <div className="p-4">
-                  <h4 className="mb-1">{campaign.title}</h4>
-                  <p className="text-sm text-gray-600 mb-3">{campaign.description}</p>
-                  
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-gray-600">Progrés</span>
-                    <span className="text-sm font-medium">{campaign.current}/{campaign.goal}</span>
+
+          {loadingCampaigns ? (
+            <div className="flex items-center justify-center p-8">
+              <Loader2 className="w-8 h-8 animate-spin text-[#E30613]" />
+            </div>
+          ) : campaignsError ? (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-center">
+              <p className="text-sm text-red-600">Error al carregar les campanyes</p>
+            </div>
+          ) : campaigns.length === 0 ? (
+            <div className="bg-gray-50 rounded-xl p-8 text-center">
+              <p className="text-gray-600">No hi ha campanyes actives actualment</p>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 gap-4">
+              {campaigns.map((campaign: Campaign) => {
+                const progress = Math.round((campaign.currentDonations / campaign.targetDonations) * 100);
+                return (
+                  <div
+                    key={campaign.id}
+                    onClick={() => setSelectedCampaign(campaign.id)}
+                    className="bg-white rounded-2xl overflow-hidden shadow-sm hover-lift cursor-pointer"
+                  >
+                    <div
+                      className="h-36 bg-cover bg-center relative"
+                      style={{ backgroundImage: `url(${campaign.imageUrl})` }}
+                    >
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+                      {campaign.priority === 'urgent' && (
+                        <Badge className="absolute top-3 right-3 bg-red-500 text-white border-0">
+                          <AlertCircle className="w-3 h-3 mr-1" />
+                          Urgent
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="p-4">
+                      <h4 className="mb-1">{campaign.title}</h4>
+                      <p className="text-sm text-gray-600 mb-3">{campaign.description}</p>
+
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm text-gray-600">Progrés</span>
+                        <span className="text-sm font-medium">{campaign.currentDonations}/{campaign.targetDonations}</span>
+                      </div>
+                      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-[#E30613] rounded-full transition-all duration-500"
+                          style={{ width: `${progress}%` }}
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-[#E30613] rounded-full transition-all duration-500"
-                      style={{ width: `${campaign.progress}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </section>
 
         {/* Donation Types */}
@@ -319,12 +319,12 @@ export function HomePage({ tokens, onNavigateToCalendar }: HomePageProps) {
               </div>
 
               <div className="p-6 space-y-6">
-                <div 
+                <div
                   className="h-48 bg-cover bg-center rounded-2xl relative overflow-hidden"
-                  style={{ backgroundImage: `url(${selectedCampaignData.image})` }}
+                  style={{ backgroundImage: `url(${selectedCampaignData.imageUrl})` }}
                 >
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                  {selectedCampaignData.urgent && (
+                  {selectedCampaignData.priority === 'urgent' && (
                     <Badge className="absolute top-3 right-3 bg-red-500 text-white border-0">
                       <AlertCircle className="w-3 h-3 mr-1" />
                       Urgent
@@ -338,47 +338,49 @@ export function HomePage({ tokens, onNavigateToCalendar }: HomePageProps) {
                   <div className="bg-gray-50 rounded-xl p-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-gray-600">Objectiu</span>
-                      <span className="font-medium">{selectedCampaignData.goal} donacions</span>
+                      <span className="font-medium">{selectedCampaignData.targetDonations} donacions</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-gray-600">Actual</span>
-                      <span className="font-medium">{selectedCampaignData.current} donacions</span>
+                      <span className="font-medium">{selectedCampaignData.currentDonations} donacions</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-gray-600">Finalitza</span>
-                      <span className="font-medium">{selectedCampaignData.endDate}</span>
+                      <span className="font-medium">{new Date(selectedCampaignData.endDate).toLocaleDateString('ca-ES', { day: 'numeric', month: 'long' })}</span>
                     </div>
                   </div>
 
                   <div className="mt-4">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm text-gray-600">Progrés</span>
-                      <span className="text-sm font-medium">{selectedCampaignData.progress}%</span>
+                      <span className="text-sm font-medium">{Math.round((selectedCampaignData.currentDonations / selectedCampaignData.targetDonations) * 100)}%</span>
                     </div>
                     <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
-                      <div 
+                      <div
                         className="h-full bg-gradient-to-r from-[#E30613] to-[#FF4444] rounded-full transition-all duration-500"
-                        style={{ width: `${selectedCampaignData.progress}%` }}
+                        style={{ width: `${Math.round((selectedCampaignData.currentDonations / selectedCampaignData.targetDonations) * 100)}%` }}
                       />
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-green-50 border border-green-200 rounded-xl p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Coins className="w-5 h-5 text-green-700" />
-                    <span className="font-medium text-green-900">Bonus especial</span>
+                {selectedCampaignData.bonusTokens > 0 && (
+                  <div className="bg-green-50 border border-green-200 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Coins className="w-5 h-5 text-green-700" />
+                      <span className="font-medium text-green-900">Bonus especial</span>
+                    </div>
+                    <p className="text-sm text-green-800">
+                      +{selectedCampaignData.bonusTokens} tokens extra per donar durant aquesta campanya
+                    </p>
                   </div>
-                  <p className="text-sm text-green-800">
-                    +{selectedCampaignData.bonusTokens} tokens extra per donar durant aquesta campanya
-                  </p>
-                </div>
+                )}
 
-                <Button 
+                <Button
                   className="w-full bg-[#E30613] hover:bg-[#C00510] text-white h-12 rounded-xl"
                   onClick={() => {
                     setSelectedCampaign(null);
-                    onNavigateToCalendar();
+                    handleNavigateToCalendar();
                   }}
                 >
                   Reservar Cita Ara
@@ -496,11 +498,11 @@ export function HomePage({ tokens, onNavigateToCalendar }: HomePageProps) {
                   </div>
                 </div>
 
-                <Button 
+                <Button
                   className="w-full bg-[#E30613] hover:bg-[#C00510] text-white h-12 rounded-xl"
                   onClick={() => {
                     setSelectedDonationType(null);
-                    onNavigateToCalendar();
+                    handleNavigateToCalendar();
                   }}
                 >
                   Reservar Cita Ara

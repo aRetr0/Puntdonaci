@@ -1,19 +1,20 @@
 import { useState } from 'react';
-import { Heart, Calendar, Award, Settings, ChevronRight, Bell, Lock, HelpCircle, LogOut, User, Share2, Instagram, Twitter, MessageCircle, Copy, Download, TrendingUp, Activity } from 'lucide-react';
+import { Heart, Calendar, Award, Settings, ChevronRight, Bell, Lock, HelpCircle, User, Share2, Instagram, Twitter, MessageCircle, Copy, Loader2 } from 'lucide-react';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useAuthStore } from '@/stores/authStore';
+import { useDonations, useDonationAnalytics } from '@/hooks';
 
-interface PerfilPageProps {
-  tokens: number;
-  userEmail?: string;
-  userData?: any;
-  onLogout?: () => void;
-}
+export function PerfilPage() {
+  const navigate = useNavigate();
+  const { user, logout } = useAuthStore();
+  const { data: donationsResponse, isLoading: loadingDonations } = useDonations();
+  const { data: analyticsResponse, isLoading: loadingAnalytics } = useDonationAnalytics();
 
-export function PerfilPage({ tokens, userEmail, userData, onLogout }: PerfilPageProps) {
   const [activeSection, setActiveSection] = useState<'overview' | 'history' | 'settings'>('overview');
   const [notifications, setNotifications] = useState({
     appointments: true,
@@ -22,74 +23,28 @@ export function PerfilPage({ tokens, userEmail, userData, onLogout }: PerfilPage
   });
   const [showShareDialog, setShowShareDialog] = useState(false);
 
-  const donationHistory = [
-    {
-      id: 1,
-      date: '2025-10-15',
-      type: 'Sang Total',
-      location: 'Hospital Clínic',
-      tokens: 15,
-      status: 'completed'
-    },
-    {
-      id: 2,
-      date: '2025-08-20',
-      type: 'Sang Total',
-      location: 'Universitat UB',
-      tokens: 15,
-      status: 'completed'
-    },
-    {
-      id: 3,
-      date: '2025-06-10',
-      type: 'Plasma',
-      location: 'Hospital Clínic',
-      tokens: 20,
-      status: 'completed'
-    },
-    {
-      id: 4,
-      date: '2025-04-05',
-      type: 'Sang Total',
-      location: 'Banc de Sang Gràcia',
-      tokens: 15,
-      status: 'completed'
-    }
-  ];
+  const tokens = user?.tokens || 0;
+  const donationHistory = (donationsResponse as any)?.data || [];
+  const analyticsData = (analyticsResponse as any)?.data || {};
 
   const achievements = [
-    { id: 1, name: 'Primera Donació', icon: '🏆', unlocked: true },
-    { id: 2, name: '5 Donacions', icon: '⭐', unlocked: false },
-    { id: 3, name: 'Donant Regular', icon: '💎', unlocked: true },
-    { id: 4, name: 'Heroi de Platí', icon: '👑', unlocked: false }
+    { id: 1, name: 'Primera Donació', icon: '🏆', unlocked: user?.donationCount && user.donationCount >= 1 },
+    { id: 2, name: '5 Donacions', icon: '⭐', unlocked: user?.donationCount && user.donationCount >= 5 },
+    { id: 3, name: 'Donant Regular', icon: '💎', unlocked: user?.donationCount && user.donationCount >= 3 },
+    { id: 4, name: 'Heroi de Platí', icon: '👑', unlocked: user?.donationCount && user.donationCount >= 10 }
   ];
 
-  const totalDonations = donationHistory.length;
-  const livesSaved = totalDonations * 3;
-  const totalTokensEarned = donationHistory.reduce((sum, d) => sum + d.tokens, 0);
+  const totalDonations = user?.donationCount || 0;
+  const livesSaved = user?.livesSaved || 0;
 
-  // Data per gràfics
-  const donationTrendData = [
-    { month: 'Abr', donations: 1, lives: 3, tokens: 15 },
-    { month: 'Jun', donations: 2, lives: 6, tokens: 30 },
-    { month: 'Ago', donations: 3, lives: 9, tokens: 45 },
-    { month: 'Oct', donations: 4, lives: 12, tokens: 65 },
-  ];
-
-  const donationTypeData = [
-    { name: 'Sang Total', value: 3, color: '#E30613' },
-    { name: 'Plasma', value: 1, color: '#FF6B6B' },
-  ];
-
-  const monthlyTokensData = [
-    { month: 'Abr', tokens: 15 },
-    { month: 'Mai', tokens: 0 },
-    { month: 'Jun', tokens: 15 },
-    { month: 'Jul', tokens: 0 },
-    { month: 'Ago', tokens: 20 },
-    { month: 'Set', tokens: 0 },
-    { month: 'Oct', tokens: 15 },
-  ];
+  // Get analytics data from API
+  const donationTrendData = analyticsData?.monthlyDonations || [];
+  const monthlyTokensData = analyticsData?.monthlyTokens || [];
+  const donationTypeData = analyticsData?.donationsByType?.map((item: any) => ({
+    name: item._id || item.donationType,
+    value: item.count,
+    color: '#E30613'
+  })) || [];
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -118,30 +73,40 @@ export function PerfilPage({ tokens, userEmail, userData, onLogout }: PerfilPage
         </div>
 
         <div className="p-4 space-y-3 pb-24">
-          {donationHistory.map((donation, index) => (
-            <div key={donation.id} className="bg-white rounded-2xl p-4 shadow-sm">
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <h4 className="text-sm mb-1">{donation.type}</h4>
-                  <p className="text-xs text-gray-600">{donation.location}</p>
-                </div>
-                <Badge className="bg-green-100 text-green-700 border-0">
-                  +{donation.tokens} tokens
-                </Badge>
-              </div>
-              <div className="flex items-center justify-between text-xs text-gray-500">
-                <span className="flex items-center gap-1">
-                  <Calendar className="w-3 h-3" />
-                  {new Date(donation.date).toLocaleDateString('ca-ES', { 
-                    day: 'numeric', 
-                    month: 'long', 
-                    year: 'numeric' 
-                  })}
-                </span>
-                <span>Donació #{totalDonations - index}</span>
-              </div>
+          {loadingDonations ? (
+            <div className="flex items-center justify-center p-8">
+              <Loader2 className="w-8 h-8 animate-spin text-[#E30613]" />
             </div>
-          ))}
+          ) : donationHistory.length === 0 ? (
+            <div className="text-center p-8 text-gray-500">
+              <p>Encara no tens donacions registrades</p>
+            </div>
+          ) : (
+            donationHistory.map((donation: any, index: number) => (
+              <div key={donation._id} className="bg-white rounded-2xl p-4 shadow-sm">
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <h4 className="text-sm mb-1">{donation.donationType || 'Donació de sang'}</h4>
+                    <p className="text-xs text-gray-600">{donation.centerName || 'Centre de donació'}</p>
+                  </div>
+                  <Badge className="bg-green-100 text-green-700 border-0">
+                    +{donation.tokensEarned || 0} tokens
+                  </Badge>
+                </div>
+                <div className="flex items-center justify-between text-xs text-gray-500">
+                  <span className="flex items-center gap-1">
+                    <Calendar className="w-3 h-3" />
+                    {new Date(donation.date).toLocaleDateString('ca-ES', {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric'
+                    })}
+                  </span>
+                  <span>Donació #{totalDonations - index}</span>
+                </div>
+              </div>
+            ))
+          )}
 
           <div className="bg-gradient-to-r from-[#E30613] to-[#FF4444] rounded-2xl p-6 text-white text-center">
             <Heart className="w-12 h-12 mx-auto mb-3 text-white" />
@@ -243,10 +208,14 @@ export function PerfilPage({ tokens, userEmail, userData, onLogout }: PerfilPage
             </div>
           </section>
 
-          <Button 
-            variant="outline" 
-            className="w-full text-red-600 border-red-200 hover:bg-red-50 h-12 rounded-xl" 
-            onClick={onLogout}
+          <Button
+            variant="outline"
+            className="w-full text-red-600 border-red-200 hover:bg-red-50 h-12 rounded-xl"
+            onClick={() => {
+              logout();
+              navigate('/login');
+              toast.success('Sessió tancada correctament');
+            }}
           >
             Tancar sessió
           </Button>
@@ -264,16 +233,16 @@ export function PerfilPage({ tokens, userEmail, userData, onLogout }: PerfilPage
             <User className="w-10 h-10 text-white" />
           </div>
           <div>
-            <h2 className="text-white mb-1">{userData?.name || 'Maria García'}</h2>
-            <p className="text-white/90 text-sm">{userEmail || 'maria.garcia@email.com'}</p>
+            <h2 className="text-white mb-1">{user?.name || 'Usuari'}</h2>
+            <p className="text-white/90 text-sm">{user?.email || ''}</p>
             <div className="flex items-center gap-2 mt-2">
               <Badge className="bg-white/20 text-white border-0 backdrop-blur-sm">
                 <Award className="w-3 h-3 mr-1" />
-                Donant de Bronze
+                {totalDonations >= 10 ? 'Donant de Platí' : totalDonations >= 5 ? 'Donant de Plata' : 'Donant de Bronze'}
               </Badge>
-              {userData?.bloodType && (
+              {user?.bloodType && (
                 <Badge className="bg-white/20 text-white border-0 backdrop-blur-sm">
-                  {userData.bloodType}
+                  {user.bloodType}
                 </Badge>
               )}
             </div>
@@ -383,39 +352,49 @@ export function PerfilPage({ tokens, userEmail, userData, onLogout }: PerfilPage
             <h4 className="text-sm text-gray-900 mb-1">Evolució de donacions</h4>
             <p className="text-xs text-gray-500">Seguiment mensual del teu progrés</p>
           </div>
-          <ResponsiveContainer width="100%" height={250}>
-            <LineChart data={donationTrendData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis 
-                dataKey="month" 
-                tick={{ fontSize: 12, fill: '#6B7280' }}
-                stroke="#E5E7EB"
-              />
-              <YAxis 
-                tick={{ fontSize: 12, fill: '#6B7280' }}
-                stroke="#E5E7EB"
-              />
-              <Tooltip content={<CustomTooltip />} />
-              <Line 
-                type="monotone" 
-                dataKey="donations" 
-                name="Donacions"
-                stroke="#E30613" 
-                strokeWidth={3}
-                dot={{ r: 5, fill: '#E30613' }}
-                activeDot={{ r: 7 }}
-              />
-              <Line 
-                type="monotone" 
-                dataKey="lives" 
-                name="Vides"
-                stroke="#10B981" 
-                strokeWidth={3}
-                dot={{ r: 5, fill: '#10B981' }}
-                activeDot={{ r: 7 }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+          {loadingAnalytics ? (
+            <div className="flex items-center justify-center h-[250px]">
+              <Loader2 className="w-8 h-8 animate-spin text-[#E30613]" />
+            </div>
+          ) : donationTrendData.length === 0 ? (
+            <div className="flex items-center justify-center h-[250px] text-gray-500 text-sm">
+              No hi ha dades disponibles
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={250}>
+              <LineChart data={donationTrendData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis
+                  dataKey="month"
+                  tick={{ fontSize: 12, fill: '#6B7280' }}
+                  stroke="#E5E7EB"
+                />
+                <YAxis
+                  tick={{ fontSize: 12, fill: '#6B7280' }}
+                  stroke="#E5E7EB"
+                />
+                <Tooltip content={<CustomTooltip />} />
+                <Line
+                  type="monotone"
+                  dataKey="donations"
+                  name="Donacions"
+                  stroke="#E30613"
+                  strokeWidth={3}
+                  dot={{ r: 5, fill: '#E30613' }}
+                  activeDot={{ r: 7 }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="lives"
+                  name="Vides"
+                  stroke="#10B981"
+                  strokeWidth={3}
+                  dot={{ r: 5, fill: '#10B981' }}
+                  activeDot={{ r: 7 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          )}
         </div>
 
         {/* Gràfic: Tokens Mensuals */}
@@ -424,30 +403,40 @@ export function PerfilPage({ tokens, userEmail, userData, onLogout }: PerfilPage
             <h4 className="text-sm text-gray-900 mb-1">Tokens guanyats</h4>
             <p className="text-xs text-gray-500">Recompenses mensuals acumulades</p>
           </div>
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={monthlyTokensData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis 
-                dataKey="month" 
-                tick={{ fontSize: 12, fill: '#6B7280' }}
-                stroke="#E5E7EB"
-              />
-              <YAxis 
-                tick={{ fontSize: 12, fill: '#6B7280' }}
-                stroke="#E5E7EB"
-              />
-              <Tooltip 
-                content={<CustomTooltip />}
-                cursor={{ fill: 'rgba(227, 6, 19, 0.1)' }}
-              />
-              <Bar 
-                dataKey="tokens" 
-                name="Tokens"
-                fill="#E30613"
-                radius={[8, 8, 0, 0]}
-              />
-            </BarChart>
-          </ResponsiveContainer>
+          {loadingAnalytics ? (
+            <div className="flex items-center justify-center h-[220px]">
+              <Loader2 className="w-8 h-8 animate-spin text-[#E30613]" />
+            </div>
+          ) : monthlyTokensData.length === 0 ? (
+            <div className="flex items-center justify-center h-[220px] text-gray-500 text-sm">
+              No hi ha dades disponibles
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={monthlyTokensData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis
+                  dataKey="month"
+                  tick={{ fontSize: 12, fill: '#6B7280' }}
+                  stroke="#E5E7EB"
+                />
+                <YAxis
+                  tick={{ fontSize: 12, fill: '#6B7280' }}
+                  stroke="#E5E7EB"
+                />
+                <Tooltip
+                  content={<CustomTooltip />}
+                  cursor={{ fill: 'rgba(227, 6, 19, 0.1)' }}
+                />
+                <Bar
+                  dataKey="tokens"
+                  name="Tokens"
+                  fill="#E30613"
+                  radius={[8, 8, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
         </div>
       </div>
 

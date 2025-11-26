@@ -1,8 +1,9 @@
-import { useState, useRef, useEffect } from 'react';
-import { MapPin, Filter, Clock, Navigation, ChevronRight, Check, X, ChevronDown, Droplet } from 'lucide-react';
+import { useState } from 'react';
+import { MapPin, Clock, Navigation, ChevronRight, Check, Loader2, Filter } from 'lucide-react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { InteractiveMap } from './InteractiveMap';
+import { toast } from 'sonner';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -13,22 +14,39 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from './ui/alert-dialog';
+import {
+  useDonationCenters,
+  useAppointments,
+  useCreateAppointment,
+  useCancelAppointment,
+} from '@/hooks';
 
 type ViewType = 'request' | 'myAppointments';
 type RequestStep = 'type' | 'location' | 'date' | 'time' | 'confirm';
 
 export function CalendariPage() {
+  // API hooks
+  const { data: centersResponse, isLoading: loadingCenters } = useDonationCenters();
+  const { data: appointmentsResponse, isLoading: loadingAppointments } = useAppointments();
+  const createAppointment = useCreateAppointment();
+  const cancelAppointment = useCancelAppointment();
+
+  // State
   const [activeView, setActiveView] = useState<ViewType>('request');
   const [requestStep, setRequestStep] = useState<RequestStep>('type');
-  
+
   const [selectedDonationType, setSelectedDonationType] = useState<string | null>(null);
-  const [selectedPoint, setSelectedPoint] = useState<number | null>(null);
+  const [selectedPoint, setSelectedPoint] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
-  const [selectedAppointment, setSelectedAppointment] = useState<number | null>(null);
+  const [selectedAppointment, setSelectedAppointment] = useState<string | null>(null);
   const [selectedCalendarDate, setSelectedCalendarDate] = useState<string | null>(null);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
+
+  // Extract data from API responses
+  const donationCenters = (centersResponse as any)?.data || [];
+  const myAppointments = (appointmentsResponse as any)?.data || [];
 
   const donationTypes = [
     { id: 'sang-total', name: 'Sang Total', icon: '🩸', duration: '30-45 min', tokens: 15 },
@@ -36,110 +54,62 @@ export function CalendariPage() {
     { id: 'plasma', name: 'Plasma', icon: '💧', duration: '60 min', tokens: 18 },
   ];
 
-  const donationPoints = [
-    {
-      id: 1,
-      name: 'Banc de Sang - Hospital Clínic',
-      address: 'Carrer Villarroel, 170, Barcelona',
-      distance: '0.8 km',
-      type: 'fix',
-      openNow: true,
-      availableToday: true,
-      types: ['sang-total', 'plaquetes', 'plasma']
-    },
-    {
-      id: 2,
-      name: 'Banc de Sang - Universitat UB',
-      address: 'Gran Via de les Corts Catalanes, 585',
-      distance: '1.2 km',
-      type: 'fix',
-      openNow: true,
-      availableToday: true,
-      types: ['sang-total']
-    },
-    {
-      id: 3,
-      name: 'Unitat Mòbil - Plaça Catalunya',
-      address: 'Plaça Catalunya, Barcelona',
-      distance: '1.5 km',
-      type: 'mobile',
-      openNow: true,
-      availableToday: true,
-      types: ['sang-total', 'plasma']
-    },
-    {
-      id: 4,
-      name: 'Banc de Sang - Gràcia',
-      address: 'Carrer Gran de Gràcia, 128',
-      distance: '2.5 km',
-      type: 'fix',
-      openNow: false,
-      availableToday: false,
-      types: ['sang-total', 'plasma']
+  // Generate available dates (next 14 days, excluding weekends)
+  const availableDates = Array.from({ length: 14 }, (_, i) => {
+    const date = new Date();
+    date.setDate(date.getDate() + i + 1);
+    const dayOfWeek = date.getDay();
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+
+    const dayNames = ['Diumenge', 'Dilluns', 'Dimarts', 'Dimecres', 'Dijous', 'Divendres', 'Dissabte'];
+    return {
+      date: date.toISOString().split('T')[0],
+      label: i === 0 ? 'Demà' : dayNames[dayOfWeek],
+      dayName: dayNames[dayOfWeek],
+      available: !isWeekend
+    };
+  });
+
+  // Generate time slots (9:00 - 17:00 every 30 min)
+  const timeSlots = Array.from({ length: 17 }, (_, i) => {
+    const hour = Math.floor(i / 2) + 9;
+    const minute = (i % 2) * 30;
+    const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+    return { time, available: true };
+  });
+
+  const handleConfirmBooking = async () => {
+    if (!selectedPoint || !selectedDate || !selectedTime || !selectedDonationType) {
+      toast.error('Si us plau, completa tots els camps');
+      return;
     }
-  ];
 
-  const availableDates = [
-    { date: '2025-11-13', label: 'Demà', dayName: 'Dijous', available: true },
-    { date: '2025-11-14', label: 'Dijous', dayName: 'Dijous', available: true },
-    { date: '2025-11-15', label: 'Divendres', dayName: 'Divendres', available: true },
-    { date: '2025-11-16', label: 'Dissabte', dayName: 'Dissabte', available: false },
-    { date: '2025-11-17', label: 'Diumenge', dayName: 'Diumenge', available: false },
-    { date: '2025-11-18', label: 'Dilluns', dayName: 'Dilluns', available: true },
-    { date: '2025-11-19', label: 'Dimarts', dayName: 'Dimarts', available: true },
-    { date: '2025-11-20', label: 'Dimecres', dayName: 'Dimecres', available: true }
-  ];
-
-  const timeSlots = [
-    { time: '09:00', available: true },
-    { time: '09:30', available: true },
-    { time: '10:00', available: false },
-    { time: '10:30', available: true },
-    { time: '11:00', available: true },
-    { time: '11:30', available: true },
-    { time: '12:00', available: true },
-    { time: '12:30', available: false }
-  ];
-
-  const myAppointments = [
-    {
-      id: 1,
-      date: '2025-11-15',
-      time: '10:00',
-      type: 'Sang Total',
-      location: 'Hospital Clínic',
-      address: 'Carrer Villarroel, 170',
-      status: 'propera',
-      tokens: 15
-    },
-    {
-      id: 2,
-      date: '2025-11-20',
-      time: '11:30',
-      type: 'Plasma',
-      location: 'Universitat UB',
-      address: 'Gran Via, 585',
-      status: 'confirmada',
-      tokens: 18
-    },
-    {
-      id: 3,
-      date: '2025-10-15',
-      time: '09:30',
-      type: 'Sang Total',
-      location: 'Hospital Clínic',
-      address: 'Carrer Villarroel, 170',
-      status: 'completada',
-      tokens: 15
+    try {
+      await createAppointment.mutateAsync({
+        donationCenterId: selectedPoint,
+        date: selectedDate,
+        time: selectedTime,
+        donationType: selectedDonationType,
+      });
+      setBookingConfirmed(true);
+      toast.success('Cita confirmada correctament!');
+    } catch (error: any) {
+      toast.error(error?.error || 'Error al confirmar la cita');
     }
-  ];
-
-  const handleConfirmBooking = () => {
-    setBookingConfirmed(true);
-    // No resetegem automàticament, deixem que l'usuari decideixi quan sortir
   };
 
-  const selectedPointData = donationPoints.find(p => p.id === selectedPoint);
+  const handleCancelAppointment = async (appointmentId: string) => {
+    try {
+      await cancelAppointment.mutateAsync(appointmentId);
+      setShowCancelDialog(false);
+      setSelectedAppointment(null);
+      toast.success('Cita cancel·lada correctament');
+    } catch (error: any) {
+      toast.error(error?.error || 'Error al cancel·lar la cita');
+    }
+  };
+
+  const selectedPointData = donationCenters.find((p: any) => p._id === selectedPoint);
   const selectedTypeData = donationTypes.find(t => t.id === selectedDonationType);
   const selectedDateData = availableDates.find(d => d.date === selectedDate);
 
@@ -281,7 +251,7 @@ export function CalendariPage() {
                   
                   // Get appointment dates for this month with their full date strings
                   const appointmentsByDate = new Map();
-                  myAppointments.forEach(a => {
+                  myAppointments.forEach((a: any) => {
                     const apptDate = new Date(a.date);
                     if (apptDate.getMonth() === currentMonth && apptDate.getFullYear() === currentYear) {
                       const day = apptDate.getDate();
@@ -374,10 +344,14 @@ export function CalendariPage() {
 
               {/* Filtered Appointments */}
               <div className="space-y-3">
-                {(() => {
+                {loadingAppointments ? (
+                  <div className="flex items-center justify-center p-8">
+                    <Loader2 className="w-8 h-8 animate-spin text-[#E30613]" />
+                  </div>
+                ) : (() => {
                   const filteredAppointments = selectedCalendarDate
-                    ? myAppointments.filter(a => a.date === selectedCalendarDate)
-                    : myAppointments.filter(a => a.status !== 'completada');
+                    ? myAppointments.filter((a: any) => a.date === selectedCalendarDate)
+                    : myAppointments.filter((a: any) => a.status !== 'completed');
 
                   if (filteredAppointments.length === 0) {
                     return (
@@ -387,47 +361,52 @@ export function CalendariPage() {
                     );
                   }
 
-                  return filteredAppointments.map((appointment) => (
-                    <div
-                      key={appointment.id}
-                      onClick={() => setSelectedAppointment(appointment.id)}
-                      className="bg-white rounded-2xl p-4 shadow-md hover:shadow-lg transition-all cursor-pointer border-2 border-transparent hover:border-[#E30613]"
-                    >
-                      <div className="flex items-start justify-between mb-3">
-                        <div>
-                          <h4 className="text-sm mb-1">{appointment.type}</h4>
-                          <p className="text-xs text-gray-600">{appointment.location}</p>
-                          <p className="text-xs text-gray-500">{appointment.address}</p>
+                  return filteredAppointments.map((appointment: any) => {
+                    const typeData = donationTypes.find(t => t.id === appointment.donationType);
+                    const center = donationCenters.find((c: any) => c._id === appointment.donationCenterId);
+
+                    return (
+                      <div
+                        key={appointment._id}
+                        onClick={() => setSelectedAppointment(appointment._id)}
+                        className="bg-white rounded-2xl p-4 shadow-md hover:shadow-lg transition-all cursor-pointer border-2 border-transparent hover:border-[#E30613]"
+                      >
+                        <div className="flex items-start justify-between mb-3">
+                          <div>
+                            <h4 className="text-sm mb-1">{typeData?.name || appointment.donationType}</h4>
+                            <p className="text-xs text-gray-600">{center?.name || 'Centre de donació'}</p>
+                            <p className="text-xs text-gray-500">{center?.address || ''}</p>
+                          </div>
+                          <Badge className={`${
+                            appointment.status === 'scheduled'
+                              ? 'bg-green-100 text-green-700 border-0'
+                              : appointment.status === 'completed'
+                              ? 'bg-gray-100 text-gray-700 border-0'
+                              : 'bg-orange-100 text-orange-700 border-0'
+                          }`}>
+                            {appointment.status === 'scheduled' && '✓ Confirmada'}
+                            {appointment.status === 'completed' && '✓ Completada'}
+                            {appointment.status === 'cancelled' && '✗ Cancel·lada'}
+                          </Badge>
                         </div>
-                        <Badge className={`${
-                          appointment.status === 'propera' 
-                            ? 'bg-orange-100 text-orange-700 border-0'
-                            : appointment.status === 'completada'
-                            ? 'bg-gray-100 text-gray-700 border-0'
-                            : 'bg-green-100 text-green-700 border-0'
-                        }`}>
-                          {appointment.status === 'propera' && '⏰ Propera'}
-                          {appointment.status === 'confirmada' && '✓ Confirmada'}
-                          {appointment.status === 'completada' && '✓ Completada'}
-                        </Badge>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-gray-600">
+                            {!selectedCalendarDate && '📅 '}
+                            {!selectedCalendarDate && new Date(appointment.date).toLocaleDateString('ca-ES', {
+                              day: 'numeric',
+                              month: 'long'
+                            }) + ' · '}
+                            {appointment.time}
+                          </span>
+                          {appointment.status === 'completed' ? (
+                            <span className="text-green-600 text-xs">+{typeData?.tokens || 15} tokens</span>
+                          ) : (
+                            <ChevronRight className="w-5 h-5 text-gray-400" />
+                          )}
+                        </div>
                       </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-600">
-                          {!selectedCalendarDate && '📅 '}
-                          {!selectedCalendarDate && new Date(appointment.date).toLocaleDateString('ca-ES', { 
-                            day: 'numeric', 
-                            month: 'long' 
-                          }) + ' · '}
-                          {appointment.time}
-                        </span>
-                        {appointment.status === 'completada' ? (
-                          <span className="text-green-600 text-xs">+{appointment.tokens} tokens</span>
-                        ) : (
-                          <ChevronRight className="w-5 h-5 text-gray-400" />
-                        )}
-                      </div>
-                    </div>
-                  ));
+                    );
+                  });
                 })()}
               </div>
 
@@ -436,32 +415,37 @@ export function CalendariPage() {
                 <div className="mt-6">
                   <h3 className="text-sm mb-3">Historial</h3>
                   <div className="space-y-3">
-                    {myAppointments.filter(a => a.status === 'completada').map((appointment) => (
-                      <div
-                        key={appointment.id}
-                        onClick={() => setSelectedAppointment(appointment.id)}
-                        className="bg-white rounded-2xl p-4 shadow-md hover:shadow-lg transition-all cursor-pointer opacity-75"
-                      >
-                        <div className="flex items-start justify-between mb-3">
-                          <div>
-                            <h4 className="text-sm mb-1">{appointment.type}</h4>
-                            <p className="text-xs text-gray-600">{appointment.location}</p>
+                    {myAppointments.filter((a: any) => a.status === 'completed').map((appointment: any) => {
+                      const typeData = donationTypes.find(t => t.id === appointment.donationType);
+                      const center = donationCenters.find((c: any) => c._id === appointment.donationCenterId);
+
+                      return (
+                        <div
+                          key={appointment._id}
+                          onClick={() => setSelectedAppointment(appointment._id)}
+                          className="bg-white rounded-2xl p-4 shadow-md hover:shadow-lg transition-all cursor-pointer opacity-75"
+                        >
+                          <div className="flex items-start justify-between mb-3">
+                            <div>
+                              <h4 className="text-sm mb-1">{typeData?.name || appointment.donationType}</h4>
+                              <p className="text-xs text-gray-600">{center?.name || 'Centre de donació'}</p>
+                            </div>
+                            <Badge className="bg-gray-100 text-gray-700 border-0">
+                              ✓ Completada
+                            </Badge>
                           </div>
-                          <Badge className="bg-gray-100 text-gray-700 border-0">
-                            ✓ Completada
-                          </Badge>
-                        </div>
-                        <div className="flex items-center justify-between text-sm">
+                          <div className="flex items-center justify-between text-sm">
                           <span className="text-gray-600">
                             📅 {new Date(appointment.date).toLocaleDateString('ca-ES', { 
                               day: 'numeric', 
                               month: 'long' 
                             })}
                           </span>
-                          <span className="text-green-600 text-xs">+{appointment.tokens} tokens</span>
+                          <span className="text-green-600 text-xs">+{typeData?.tokens || 0} tokens</span>
                         </div>
                       </div>
-                    ))}
+                    );
+                    })}
                   </div>
                 </div>
               )}
@@ -474,8 +458,11 @@ export function CalendariPage() {
       {activeView === 'myAppointments' && selectedAppointment && (
         <div className="flex-1 overflow-y-auto">
           {(() => {
-            const appointment = myAppointments.find(a => a.id === selectedAppointment);
+            const appointment = myAppointments.find((a: any) => a._id === selectedAppointment);
             if (!appointment) return null;
+
+            const typeData = donationTypes.find(t => t.id === appointment.donationType);
+            const center = donationCenters.find((c: any) => c._id === appointment.donationCenterId);
 
             return (
               <>
@@ -488,18 +475,18 @@ export function CalendariPage() {
 
                 <div className="p-6 space-y-6">
                   <div className="bg-gradient-to-r from-[#E30613] to-[#FF4444] rounded-2xl p-6 text-white text-center">
-                    <div className="text-5xl mb-3">🩸</div>
-                    <h2 className="text-white mb-2">{appointment.type}</h2>
-                    <p className="text-white/90">{appointment.location}</p>
+                    <div className="text-5xl mb-3">{typeData?.icon || '🩸'}</div>
+                    <h2 className="text-white mb-2">{typeData?.name || appointment.donationType}</h2>
+                    <p className="text-white/90">{center?.name || 'Centre de donació'}</p>
                   </div>
 
                   <div className="bg-white rounded-2xl p-5 shadow-md space-y-4">
                     <div>
                       <p className="text-sm text-gray-600 mb-1">Data i hora</p>
                       <p className="text-lg">
-                        {new Date(appointment.date).toLocaleDateString('ca-ES', { 
+                        {new Date(appointment.date).toLocaleDateString('ca-ES', {
                           weekday: 'long',
-                          day: 'numeric', 
+                          day: 'numeric',
                           month: 'long',
                           year: 'numeric'
                         })}
@@ -509,34 +496,34 @@ export function CalendariPage() {
 
                     <div className="border-t pt-4">
                       <p className="text-sm text-gray-600 mb-1">Lloc</p>
-                      <p className="text-lg">{appointment.location}</p>
-                      <p className="text-sm text-gray-600">{appointment.address}</p>
+                      <p className="text-lg">{center?.name || 'Centre de donació'}</p>
+                      <p className="text-sm text-gray-600">{center?.address || ''}</p>
                     </div>
 
                     <div className="border-t pt-4">
                       <p className="text-sm text-gray-600 mb-1">Estat</p>
                       <Badge className={`${
-                        appointment.status === 'propera' 
-                          ? 'bg-orange-100 text-orange-700 border-0'
-                          : appointment.status === 'completada'
+                        appointment.status === 'scheduled'
+                          ? 'bg-green-100 text-green-700 border-0'
+                          : appointment.status === 'completed'
                           ? 'bg-gray-100 text-gray-700 border-0'
-                          : 'bg-green-100 text-green-700 border-0'
+                          : 'bg-orange-100 text-orange-700 border-0'
                       }`}>
-                        {appointment.status === 'propera' && '⏰ Propera'}
-                        {appointment.status === 'confirmada' && '✓ Confirmada'}
-                        {appointment.status === 'completada' && '✓ Completada'}
+                        {appointment.status === 'scheduled' && '✓ Confirmada'}
+                        {appointment.status === 'completed' && '✓ Completada'}
+                        {appointment.status === 'cancelled' && '✗ Cancel·lada'}
                       </Badge>
                     </div>
 
-                    {appointment.status === 'completada' && (
+                    {appointment.status === 'completed' && (
                       <div className="border-t pt-4">
                         <p className="text-sm text-gray-600 mb-1">Tokens guanyats</p>
-                        <p className="text-2xl text-green-600">+{appointment.tokens} tokens</p>
+                        <p className="text-2xl text-green-600">+{typeData?.tokens || 15} tokens</p>
                       </div>
                     )}
                   </div>
 
-                  {appointment.status !== 'completada' && (
+                  {appointment.status !== 'completed' && appointment.status !== 'cancelled' && (
                     <div className="bg-blue-50 rounded-2xl p-4 border border-blue-100">
                       <h4 className="text-sm text-blue-900 mb-2">💡 Recorda</h4>
                       <ul className="text-xs text-blue-800 space-y-1">
@@ -547,8 +534,8 @@ export function CalendariPage() {
                     </div>
                   )}
 
-                  {appointment.status !== 'completada' && (
-                    <Button 
+                  {appointment.status === 'scheduled' && (
+                    <Button
                       variant="outline"
                       className="w-full border-red-200 text-red-600 hover:bg-red-50"
                       onClick={() => setShowCancelDialog(true)}
@@ -584,79 +571,77 @@ export function CalendariPage() {
 
               {/* Map Preview */}
               <div className="h-64 md:h-80 relative overflow-hidden">
-                <InteractiveMap 
+                <InteractiveMap
                   onPointClick={(pointId) => {
-                    setSelectedPoint(pointId);
-                    setRequestStep('selectType');
+                    setSelectedPoint(String(pointId));
+                    setRequestStep('type');
                   }}
                 />
               </div>
 
               {/* Donation Points List */}
               <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                <p className="text-sm text-gray-600 mb-2">{donationPoints.length} punts propers a tu</p>
-                
-                {donationPoints.map((point) => (
-                  <div
-                    key={point.id}
-                    onClick={() => {
-                      setSelectedPoint(point.id);
-                      setRequestStep('selectType');
-                    }}
-                    className="bg-white rounded-2xl p-4 shadow-md hover:shadow-lg transition-all cursor-pointer border-2 border-transparent hover:border-[#E30613]"
-                  >
-                    <div className="flex justify-between items-start mb-3">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h4 className="text-sm">{point.name}</h4>
-                          {point.type === 'mobile' && (
-                            <Badge className="bg-purple-100 text-purple-700 border-0 text-xs">
-                              🚐 Mòbil
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-xs text-gray-600 flex items-center gap-1 mb-2">
-                          <MapPin className="w-3 h-3" />
-                          {point.address}
-                        </p>
-                      </div>
-                      <ChevronRight className="w-5 h-5 text-gray-400" />
-                    </div>
-
-                    <div className="flex items-center gap-2 mb-3">
-                      <Badge variant="outline" className="text-xs">
-                        📍 {point.distance}
-                      </Badge>
-                      {point.openNow && (
-                        <Badge className="bg-green-100 text-green-700 border-0 text-xs">
-                          Obert ara
-                        </Badge>
-                      )}
-                      {point.availableToday && (
-                        <Badge className="bg-blue-100 text-blue-700 border-0 text-xs">
-                          Disponible avui
-                        </Badge>
-                      )}
-                    </div>
-
-                    <div className="flex flex-wrap gap-1">
-                      {point.types.map((type) => {
-                        const typeData = donationTypes.find(t => t.id === type);
-                        return (
-                          <span key={type} className="text-xs bg-gray-100 px-2 py-1 rounded">
-                            {typeData?.icon} {typeData?.name}
-                          </span>
-                        );
-                      })}
-                    </div>
+                {loadingCenters ? (
+                  <div className="flex items-center justify-center p-8">
+                    <Loader2 className="w-8 h-8 animate-spin text-[#E30613]" />
                   </div>
-                ))}
+                ) : (
+                  <>
+                    <p className="text-sm text-gray-600 mb-2">{donationCenters.length} punts propers a tu</p>
+
+                    {donationCenters.map((center: any) => (
+                      <div
+                        key={center._id}
+                        onClick={() => {
+                          setSelectedPoint(center._id);
+                          setRequestStep('type');
+                        }}
+                        className="bg-white rounded-2xl p-4 shadow-md hover:shadow-lg transition-all cursor-pointer border-2 border-transparent hover:border-[#E30613]"
+                      >
+                        <div className="flex justify-between items-start mb-3">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h4 className="text-sm">{center.name}</h4>
+                              {center.type === 'mobile' && (
+                                <Badge className="bg-purple-100 text-purple-700 border-0 text-xs">
+                                  🚐 Mòbil
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-xs text-gray-600 flex items-center gap-1 mb-2">
+                              <MapPin className="w-3 h-3" />
+                              {center.address}
+                            </p>
+                          </div>
+                          <ChevronRight className="w-5 h-5 text-gray-400" />
+                        </div>
+
+                        <div className="flex items-center gap-2 mb-3">
+                          <Badge variant="outline" className="text-xs">
+                            📍 {center.city}
+                          </Badge>
+                          <Badge className="bg-green-100 text-green-700 border-0 text-xs">
+                            Obert ara
+                          </Badge>
+                        </div>
+
+                        <div className="flex flex-wrap gap-1">
+                          {donationTypes.map((type) => (
+                            <span key={type.id} className="text-xs bg-gray-100 px-2 py-1 rounded">
+                              {type.icon} {type.name}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </>
+                )}
               </div>
             </div>
           )}
 
           {/* Step 1: Select Donation Type (after selecting location) */}
-          {requestStep === 'selectType' && (
+          {requestStep === 'type' && (
             <div className="flex-1 overflow-y-auto">
               <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center gap-3 z-10">
                 <button onClick={() => {
@@ -704,7 +689,7 @@ export function CalendariPage() {
           {requestStep === 'date' && (
             <div className="flex-1 overflow-y-auto">
               <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center gap-3 z-10">
-                <button onClick={() => setRequestStep('selectType')} className="text-gray-600">
+                <button onClick={() => setRequestStep('type')} className="text-gray-600">
                   ← Tornar
                 </button>
                 <div>
@@ -719,7 +704,7 @@ export function CalendariPage() {
                     <button
                       key={dateOption.date}
                       onClick={() => {
-                        if (dateOption.available) {
+                        if (dateOption.available && dateOption.date) {
                           setSelectedDate(dateOption.date);
                           setRequestStep('time');
                         }
@@ -735,10 +720,10 @@ export function CalendariPage() {
                         {dateOption.dayName}
                       </p>
                       <p className="text-2xl mb-1">
-                        {new Date(dateOption.date).getDate()}
+                        {dateOption.date ? new Date(dateOption.date).getDate() : ''}
                       </p>
                       <p className="text-xs text-gray-500">
-                        {new Date(dateOption.date).toLocaleDateString('ca-ES', { month: 'short' })}
+                        {dateOption.date ? new Date(dateOption.date).toLocaleDateString('ca-ES', { month: 'short' }) : ''}
                       </p>
                     </button>
                   ))}
@@ -845,12 +830,22 @@ export function CalendariPage() {
                 </div>
 
                 <div className="space-y-3">
-                  <Button 
+                  <Button
                     onClick={handleConfirmBooking}
+                    disabled={createAppointment.isPending}
                     className="w-full bg-[#E30613] hover:bg-[#C00510] text-white h-14"
                   >
-                    <Check className="w-5 h-5 mr-2" />
-                    Confirmar Cita
+                    {createAppointment.isPending ? (
+                      <>
+                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                        Confirmant...
+                      </>
+                    ) : (
+                      <>
+                        <Check className="w-5 h-5 mr-2" />
+                        Confirmar Cita
+                      </>
+                    )}
                   </Button>
                   <Button 
                     variant="outline"
@@ -883,16 +878,23 @@ export function CalendariPage() {
           </AlertDialogHeader>
           <AlertDialogFooter className="gap-2 sm:gap-0">
             <AlertDialogCancel className="m-0">No, mantenir cita</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               className="bg-red-600 hover:bg-red-700 text-white m-0"
               onClick={() => {
-                // Here you would handle the cancellation logic
-                setShowCancelDialog(false);
-                setSelectedAppointment(null);
-                // Show success message or update appointment list
+                if (selectedAppointment) {
+                  handleCancelAppointment(selectedAppointment);
+                }
               }}
+              disabled={cancelAppointment.isPending}
             >
-              Sí, cancel·lar
+              {cancelAppointment.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Cancel·lant...
+                </>
+              ) : (
+                'Sí, cancel·lar'
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -1,22 +1,27 @@
 import { useState, useRef } from 'react';
-import { Coins, Music, ShoppingBag, Gift, Sparkles, Check, X } from 'lucide-react';
+import { Coins, Music, ShoppingBag, Gift, Sparkles, Check, X, Loader2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
+import { toast } from 'sonner';
+import { useAuthStore } from '@/stores/authStore';
+import { useRewards, useRedeemReward } from '@/hooks';
 
-interface RecompensesPageProps {
-  tokens: number;
-  onRedeem: (cost: number) => void;
-}
+export function RecompensesPage() {
+  const { user } = useAuthStore();
+  const { data: rewardsResponse, isLoading: loadingRewards } = useRewards();
+  const redeemReward = useRedeemReward();
 
-export function RecompensesPage({ tokens, onRedeem }: RecompensesPageProps) {
   const [selectedCategory, setSelectedCategory] = useState<string>('tots');
-  const [selectedReward, setSelectedReward] = useState<number | null>(null);
+  const [selectedReward, setSelectedReward] = useState<string | null>(null);
   const [showRedeemModal, setShowRedeemModal] = useState(false);
   const [redeemedCode, setRedeemedCode] = useState<string | null>(null);
   const [dragY, setDragY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const startY = useRef(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  const tokens = user?.tokens || 0;
+  const rewards = (rewardsResponse as any)?.data || [];
 
   const categories = [
     { id: 'tots', label: 'Tots', icon: Gift },
@@ -25,74 +30,25 @@ export function RecompensesPage({ tokens, onRedeem }: RecompensesPageProps) {
     { id: 'exclusiu', label: 'Exclusiu', icon: Sparkles }
   ];
 
-  const rewards = [
-    {
-      id: 1,
-      title: 'Primavera Sound 2025',
-      description: 'Prevenda exclusiva per a donants',
-      cost: 50,
-      category: 'festivals',
-      image: 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=400&auto=format&fit=crop',
-      terms: 'Accés a la prevenda exclusiva del Primavera Sound 2025. Codi vàlid fins 31/12/2024.'
-    },
-    {
-      id: 2,
-      title: 'Sónar Barcelona',
-      description: '15% de descompte en entrades',
-      cost: 35,
-      category: 'festivals',
-      image: 'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=400&auto=format&fit=crop',
-      terms: '15% de descompte en l\'entrada general. Vàlid per Sónar de Dia i Sónar de Nit.'
-    },
-    {
-      id: 3,
-      title: 'Spotify Premium',
-      description: '3 mesos gratis',
-      cost: 25,
-      category: 'exclusiu',
-      image: 'https://images.unsplash.com/photo-1614680376593-902f74cf0d41?w=400&auto=format&fit=crop',
-      terms: '3 mesos de Spotify Premium gratuïts. Només per a nous usuaris o comptes inactius.'
-    },
-    {
-      id: 4,
-      title: 'Cinemes Yelmo',
-      description: '2x1 en entrades',
-      cost: 20,
-      category: 'descomptes',
-      image: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=400&auto=format&fit=crop',
-      terms: '2x1 en entrades de cinema. Vàlid de dilluns a dijous, sessions abans de les 18h.'
-    },
-    {
-      id: 5,
-      title: 'Descompte Zara',
-      description: '20% en la teva compra',
-      cost: 30,
-      category: 'descomptes',
-      image: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&auto=format&fit=crop',
-      terms: '20% de descompte en una compra. No acumulable amb altres promocions. Vàlid 30 dies.'
-    },
-    {
-      id: 6,
-      title: 'Experiència Culers',
-      description: 'Visita Camp Nou + Museu',
-      cost: 60,
-      category: 'exclusiu',
-      image: 'https://images.unsplash.com/photo-1522778119026-d647f0596c20?w=400&auto=format&fit=crop',
-      terms: 'Entrada gratuïta al Camp Nou i Museu del FC Barcelona. Inclou una persona acompanyant.'
+  const filteredRewards = selectedCategory === 'tots'
+    ? rewards
+    : rewards.filter((r: any) => r.category === selectedCategory);
+
+  const selectedRewardData = rewards.find((r: any) => r._id === selectedReward);
+
+  const handleRedeem = async () => {
+    if (!selectedRewardData || tokens < selectedRewardData.tokensRequired) {
+      toast.error('No tens prou tokens per bescanviar aquesta recompensa');
+      return;
     }
-  ];
 
-  const filteredRewards = selectedCategory === 'tots' 
-    ? rewards 
-    : rewards.filter(r => r.category === selectedCategory);
-
-  const selectedRewardData = rewards.find(r => r.id === selectedReward);
-
-  const handleRedeem = () => {
-    if (selectedRewardData && tokens >= selectedRewardData.cost) {
-      const code = `BST-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
-      setRedeemedCode(code);
-      onRedeem(selectedRewardData.cost);
+    try {
+      const result = await redeemReward.mutateAsync(selectedRewardData._id);
+      // The redemption code is returned by the API
+      setRedeemedCode((result as any).data?.redemptionCode || `BST-${Date.now()}`);
+      toast.success('Recompensa bescanviada correctament!');
+    } catch (error: any) {
+      toast.error(error?.error || 'Error al bescanviar la recompensa');
     }
   };
 
@@ -156,37 +112,47 @@ export function RecompensesPage({ tokens, onRedeem }: RecompensesPageProps) {
 
       {/* Rewards Grid */}
       <div className="flex-1 overflow-y-auto p-4" ref={scrollContainerRef}>
-        <div className="grid grid-cols-2 gap-3 pb-24">
-          {filteredRewards.map((reward) => {
-            const canAfford = tokens >= reward.cost;
-            
-            return (
-              <div
-                key={reward.id}
-                onClick={() => {
-                  setSelectedReward(reward.id);
-                  setShowRedeemModal(true);
-                }}
-                className={`bg-white rounded-2xl overflow-hidden shadow-sm transition-all cursor-pointer ${
-                  canAfford ? 'hover-lift' : 'opacity-60'
-                }`}
-              >
-                <div 
-                  className="h-28 bg-cover bg-center"
-                  style={{ backgroundImage: `url(${reward.image})` }}
-                />
-                <div className="p-3">
-                  <h4 className="text-sm mb-1 line-clamp-1">{reward.title}</h4>
-                  <p className="text-xs text-gray-600 mb-3 line-clamp-2">{reward.description}</p>
-                  <div className={`flex items-center gap-1 ${canAfford ? 'text-[#E30613]' : 'text-gray-400'}`}>
-                    <Coins className="w-3.5 h-3.5" />
-                    <span className="text-sm font-medium">{reward.cost} tokens</span>
+        {loadingRewards ? (
+          <div className="flex items-center justify-center p-8">
+            <Loader2 className="w-8 h-8 animate-spin text-[#E30613]" />
+          </div>
+        ) : filteredRewards.length === 0 ? (
+          <div className="text-center p-8 text-gray-500">
+            No hi ha recompenses disponibles
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-3 pb-24">
+            {filteredRewards.map((reward: any) => {
+              const canAfford = tokens >= reward.tokensRequired;
+
+              return (
+                <div
+                  key={reward._id}
+                  onClick={() => {
+                    setSelectedReward(reward._id);
+                    setShowRedeemModal(true);
+                  }}
+                  className={`bg-white rounded-2xl overflow-hidden shadow-sm transition-all cursor-pointer ${
+                    canAfford ? 'hover-lift' : 'opacity-60'
+                  }`}
+                >
+                  <div
+                    className="h-28 bg-cover bg-center"
+                    style={{ backgroundImage: `url(${reward.imageUrl})` }}
+                  />
+                  <div className="p-3">
+                    <h4 className="text-sm mb-1 line-clamp-1">{reward.title}</h4>
+                    <p className="text-xs text-gray-600 mb-3 line-clamp-2">{reward.description}</p>
+                    <div className={`flex items-center gap-1 ${canAfford ? 'text-[#E30613]' : 'text-gray-400'}`}>
+                      <Coins className="w-3.5 h-3.5" />
+                      <span className="text-sm font-medium">{reward.tokensRequired} tokens</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Reward Detail Modal */}
@@ -230,18 +196,18 @@ export function RecompensesPage({ tokens, onRedeem }: RecompensesPageProps) {
               </div>
 
               <div className="p-6 space-y-6">
-                <div 
+                <div
                   className="h-48 bg-cover bg-center rounded-2xl"
-                  style={{ backgroundImage: `url(${selectedRewardData.image})` }}
+                  style={{ backgroundImage: `url(${selectedRewardData.imageUrl})` }}
                 />
 
                 <div>
                   <h4 className="mb-2">{selectedRewardData.title}</h4>
                   <p className="text-gray-600 mb-4">{selectedRewardData.description}</p>
-                  
+
                   <div className="bg-gray-50 rounded-xl p-4">
                     <h5 className="text-sm font-medium mb-2">Termes i condicions</h5>
-                    <p className="text-sm text-gray-600">{selectedRewardData.terms}</p>
+                    <p className="text-sm text-gray-600">{selectedRewardData.terms || 'No hi ha termes específics'}</p>
                   </div>
                 </div>
 
@@ -250,7 +216,7 @@ export function RecompensesPage({ tokens, onRedeem }: RecompensesPageProps) {
                     <span className="text-sm text-blue-900">Cost</span>
                     <div className="flex items-center gap-2">
                       <Coins className="w-5 h-5 text-blue-700" />
-                      <span className="font-medium text-blue-900">{selectedRewardData.cost} tokens</span>
+                      <span className="font-medium text-blue-900">{selectedRewardData.tokensRequired} tokens</span>
                     </div>
                   </div>
                   <div className="flex items-center justify-between mt-2">
@@ -259,17 +225,25 @@ export function RecompensesPage({ tokens, onRedeem }: RecompensesPageProps) {
                   </div>
                 </div>
 
-                {tokens >= selectedRewardData.cost ? (
-                  <Button 
+                {tokens >= selectedRewardData.tokensRequired ? (
+                  <Button
                     className="w-full bg-[#E30613] hover:bg-[#C00510] text-white h-12 rounded-xl"
                     onClick={handleRedeem}
+                    disabled={redeemReward.isPending}
                   >
-                    Bescanviar Recompensa
+                    {redeemReward.isPending ? (
+                      <>
+                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                        Bescanviant...
+                      </>
+                    ) : (
+                      'Bescanviar Recompensa'
+                    )}
                   </Button>
                 ) : (
                   <div className="text-center p-4 bg-gray-50 rounded-xl">
                     <p className="text-sm text-gray-600">
-                      Necessites {selectedRewardData.cost - tokens} tokens més
+                      Necessites {selectedRewardData.tokensRequired - tokens} tokens més
                     </p>
                   </div>
                 )}

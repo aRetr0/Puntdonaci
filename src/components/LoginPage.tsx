@@ -1,9 +1,12 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'sonner';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
-import { Droplet, Mail, Lock, User, Phone, Calendar, Heart, Check, ChevronRight } from 'lucide-react';
+import { Droplet, Mail, Lock, User, Phone, Calendar, Heart, Check, ChevronRight, Loader2 } from 'lucide-react';
+import { useAuthStore } from '@/stores/authStore';
 
 type ViewType = 'welcome' | 'login' | 'signup' | 'signupStep2';
 
@@ -13,17 +16,15 @@ interface SignupData {
   confirmPassword: string;
   name: string;
   phone: string;
-  birthDate: string;
+  birthdate: string;
   bloodType: string;
   gender: string;
   hasDonatedBefore: string;
 }
 
-interface LoginPageProps {
-  onLogin: (email: string, userData?: any) => void;
-}
-
-export function LoginPage({ onLogin }: LoginPageProps) {
+export function LoginPage() {
+  const navigate = useNavigate();
+  const { login, register, isLoading } = useAuthStore();
   const [view, setView] = useState<ViewType>('welcome');
   const [loginData, setLoginData] = useState({ email: '', password: '' });
   const [signupData, setSignupData] = useState<SignupData>({
@@ -32,7 +33,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     confirmPassword: '',
     name: '',
     phone: '',
-    birthDate: '',
+    birthdate: '',
     bloodType: '',
     gender: '',
     hasDonatedBefore: 'no'
@@ -41,7 +42,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
 
   const bloodTypes = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', 'No ho sé'];
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors([]);
 
@@ -55,7 +56,15 @@ export function LoginPage({ onLogin }: LoginPageProps) {
       return;
     }
 
-    onLogin(loginData.email);
+    try {
+      await login(loginData.email, loginData.password);
+      toast.success('Benvingut de nou!');
+      navigate('/onboarding');
+    } catch (error: any) {
+      const message = error?.error || 'Error al iniciar sessió';
+      setErrors([message]);
+      toast.error(message);
+    }
   };
 
   const handleSignupStep1 = (e: React.FormEvent) => {
@@ -87,17 +96,17 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     setView('signupStep2');
   };
 
-  const handleSignupStep2 = (e: React.FormEvent) => {
+  const handleSignupStep2 = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors([]);
     const newErrors: string[] = [];
 
-    if (!signupData.phone || !signupData.birthDate || !signupData.bloodType || !signupData.gender) {
+    if (!signupData.phone || !signupData.birthdate || !signupData.bloodType || !signupData.gender) {
       newErrors.push('Si us plau, omple tots els camps');
     }
 
-    if (signupData.birthDate) {
-      const age = new Date().getFullYear() - new Date(signupData.birthDate).getFullYear();
+    if (signupData.birthdate) {
+      const age = new Date().getFullYear() - new Date(signupData.birthdate).getFullYear();
       if (age < 18) {
         newErrors.push('Has de tenir almenys 18 anys');
       }
@@ -111,14 +120,24 @@ export function LoginPage({ onLogin }: LoginPageProps) {
       return;
     }
 
-    onLogin(signupData.email, {
-      name: signupData.name,
-      bloodType: signupData.bloodType,
-      age: new Date().getFullYear() - new Date(signupData.birthDate).getFullYear(),
-      phone: signupData.phone,
-      gender: signupData.gender,
-      hasDonatedBefore: signupData.hasDonatedBefore === 'yes'
-    });
+    try {
+      await register({
+        name: signupData.name,
+        email: signupData.email,
+        password: signupData.password,
+        phone: signupData.phone,
+        birthdate: signupData.birthdate,
+        gender: signupData.gender as 'home' | 'dona' | 'altre' | 'no-especificar',
+        bloodType: signupData.bloodType as any,
+        hasDonatedBefore: signupData.hasDonatedBefore === 'yes'
+      });
+      toast.success('Compte creat correctament!');
+      navigate('/onboarding');
+    } catch (error: any) {
+      const message = error?.error || 'Error al crear el compte';
+      setErrors([message]);
+      toast.error(message);
+    }
   };
 
   // Welcome Screen
@@ -133,7 +152,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
               <Droplet className="w-16 h-16 text-white" />
             </div>
           </div>
-          
+
           <h1 className="text-center mb-3">PuntDonació</h1>
           <p className="text-center text-gray-600 mb-12 max-w-xs">
             Dona sang, salva vides i guanya recompenses
@@ -159,9 +178,8 @@ export function LoginPage({ onLogin }: LoginPageProps) {
         {/* Desktop version */}
         <div className="hidden md:block w-full max-w-3xl mx-auto p-8">
           <div className="relative">
-            {/* Red glow effect */}
             <div className="absolute inset-0 bg-[#E30613]/20 blur-[100px] rounded-full scale-110" />
-            
+
             <div className="relative bg-white rounded-3xl shadow-2xl p-12">
               <div className="flex flex-col items-center">
                 <div className="relative mb-8">
@@ -170,7 +188,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
                     <Droplet className="w-12 h-12 text-white" />
                   </div>
                 </div>
-                
+
                 <h1 className="text-center mb-3">PuntDonació</h1>
                 <p className="text-center text-gray-600 mb-10 max-w-xs">
                   Dona sang, salva vides i guanya recompenses
@@ -206,685 +224,708 @@ export function LoginPage({ onLogin }: LoginPageProps) {
   // Login Screen
   if (view === 'login') {
     return (
-      <div className="h-full flex flex-col bg-white md:bg-transparent md:items-center md:justify-center w-full">
-        {/* Mobile version */}
-        <div className="md:hidden p-6">
-          <button
-            onClick={() => setView('welcome')}
-            className="text-[#E30613] text-sm flex items-center gap-1"
-          >
-            ← Enrere
-          </button>
-        </div>
-
-        <div className="md:hidden flex-1 px-8 pt-4">
-          <div className="mb-10">
-            <h2 className="mb-2">Benvingut/da</h2>
-            <p className="text-gray-600">Inicia sessió per continuar</p>
-          </div>
-
-          {errors.length > 0 && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-2xl">
-              {errors.map((error, index) => (
-                <p key={index} className="text-sm text-red-600">• {error}</p>
-              ))}
-            </div>
-          )}
-
-          <form onSubmit={handleLogin} className="space-y-5">
-            <div>
-              <Label htmlFor="login-email" className="text-sm text-gray-700 mb-2 block">
-                Correu electrònic
-              </Label>
-              <Input
-                id="login-email"
-                type="email"
-                placeholder="nom@correu.com"
-                value={loginData.email}
-                onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
-                className="h-14 rounded-xl border-gray-200 focus:border-[#E30613] focus:ring-[#E30613]"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="login-password" className="text-sm text-gray-700 mb-2 block">
-                Contrasenya
-              </Label>
-              <Input
-                id="login-password"
-                type="password"
-                placeholder="••••••••"
-                value={loginData.password}
-                onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
-                className="h-14 rounded-xl border-gray-200 focus:border-[#E30613] focus:ring-[#E30613]"
-              />
-            </div>
-
-            <button type="button" className="text-sm text-[#E30613]">
-              Has oblidat la contrasenya?
-            </button>
-
-            <div className="pt-4">
-              <Button
-                type="submit"
-                className="w-full h-14 bg-[#E30613] hover:bg-[#C00510] text-white rounded-2xl shadow-lg shadow-[#E30613]/20"
-              >
-                Iniciar sessió
-              </Button>
-            </div>
-
-            <p className="text-center text-sm text-gray-600 pt-4">
-              No tens compte?{' '}
-              <button
-                type="button"
-                onClick={() => setView('signup')}
-                className="text-[#E30613]"
-              >
-                Registra't
-              </button>
-            </p>
-          </form>
-        </div>
-
-        {/* Desktop version */}
-        <div className="hidden md:block w-full max-w-3xl mx-auto p-8">
-          <div className="bg-white rounded-3xl shadow-2xl p-12">
+      <AnimatePresence>
+        <motion.div
+          initial={{ opacity: 0, x: 50 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -50 }}
+          className="h-full flex flex-col bg-white md:bg-transparent md:flex md:items-center md:justify-center w-full"
+        >
+          {/* Mobile version */}
+          <div className="md:hidden flex-1 flex flex-col px-8 py-12 max-w-md mx-auto w-full">
             <button
               onClick={() => setView('welcome')}
-              className="text-[#E30613] text-sm flex items-center gap-1 mb-8"
+              className="self-start mb-8 text-gray-600 hover:text-gray-900"
             >
               ← Enrere
             </button>
 
-            <div className="mb-10">
-              <h2 className="mb-2">Benvingut/da</h2>
-              <p className="text-gray-600">Inicia sessió per continuar</p>
-            </div>
+            <h2 className="mb-2">Benvingut de nou</h2>
+            <p className="text-gray-600 mb-8">Inicia sessió per continuar</p>
 
-            {errors.length > 0 && (
-              <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-2xl">
-                {errors.map((error, index) => (
-                  <p key={index} className="text-sm text-red-600">• {error}</p>
-                ))}
-              </div>
-            )}
+            <form onSubmit={handleLogin} className="flex-1 flex flex-col">
+              <div className="space-y-4 mb-6">
+                <div>
+                  <Label htmlFor="email">Correu electrònic</Label>
+                  <div className="relative mt-2">
+                    <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="nom@exemple.com"
+                      value={loginData.email}
+                      onChange={(e) => setLoginData({...loginData, email: e.target.value})}
+                      className="pl-12 h-14 rounded-2xl border-2"
+                    />
+                  </div>
+                </div>
 
-            <form onSubmit={handleLogin} className="space-y-5">
-              <div>
-                <Label htmlFor="login-email-desktop" className="text-sm text-gray-700 mb-2 block">
-                  Correu electrònic
-                </Label>
-                <Input
-                  id="login-email-desktop"
-                  type="email"
-                  placeholder="nom@correu.com"
-                  value={loginData.email}
-                  onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
-                  className="h-14 rounded-xl border-gray-200 focus:border-[#E30613] focus:ring-[#E30613]"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="login-password-desktop" className="text-sm text-gray-700 mb-2 block">
-                  Contrasenya
-                </Label>
-                <Input
-                  id="login-password-desktop"
-                  type="password"
-                  placeholder="••••••••"
-                  value={loginData.password}
-                  onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
-                  className="h-14 rounded-xl border-gray-200 focus:border-[#E30613] focus:ring-[#E30613]"
-                />
+                <div>
+                  <Label htmlFor="password">Contrasenya</Label>
+                  <div className="relative mt-2">
+                    <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <Input
+                      id="password"
+                      type="password"
+                      placeholder="••••••••"
+                      value={loginData.password}
+                      onChange={(e) => setLoginData({...loginData, password: e.target.value})}
+                      className="pl-12 h-14 rounded-2xl border-2"
+                    />
+                  </div>
+                </div>
               </div>
 
-              <button type="button" className="text-sm text-[#E30613]">
-                Has oblidat la contrasenya?
-              </button>
-
-              <div className="pt-4">
-                <Button
-                  type="submit"
-                  className="w-full h-14 bg-[#E30613] hover:bg-[#C00510] text-white rounded-2xl shadow-lg shadow-[#E30613]/20"
-                >
-                  Iniciar sessió
-                </Button>
-              </div>
-
-              <p className="text-center text-sm text-gray-600 pt-4">
-                No tens compte?{' '}
-                <button
-                  type="button"
-                  onClick={() => setView('signup')}
-                  className="text-[#E30613]"
-                >
-                  Registra't
-                </button>
-              </p>
-            </form>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Signup Step 1
-  if (view === 'signup') {
-    return (
-      <div className="h-full flex flex-col bg-white overflow-y-auto md:bg-transparent md:items-center md:justify-center md:overflow-hidden w-full">
-        {/* Mobile version */}
-        <div className="md:hidden sticky top-0 bg-white/95 backdrop-blur-lg border-b border-gray-100 p-6 z-10">
-          <button
-            onClick={() => setView('welcome')}
-            className="text-[#E30613] text-sm flex items-center gap-1"
-          >
-            ← Enrere
-          </button>
-        </div>
-
-        <div className="md:hidden flex-1 px-8 pt-6 pb-8">
-          <div className="mb-8">
-            <h2 className="mb-2">Crea el teu compte</h2>
-            <p className="text-gray-600">Pas 1 de 2: Dades bàsiques</p>
-          </div>
-
-          {errors.length > 0 && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-2xl">
-              {errors.map((error, index) => (
-                <p key={index} className="text-sm text-red-600">• {error}</p>
-              ))}
-            </div>
-          )}
-
-          <form onSubmit={handleSignupStep1} className="space-y-5">
-            <div>
-              <Label htmlFor="signup-name" className="text-sm text-gray-700 mb-2 block">
-                Nom complet
-              </Label>
-              <Input
-                id="signup-name"
-                type="text"
-                placeholder="Joan Garcia Martí"
-                value={signupData.name}
-                onChange={(e) => setSignupData({ ...signupData, name: e.target.value })}
-                className="h-14 rounded-xl border-gray-200 focus:border-[#E30613] focus:ring-[#E30613]"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="signup-email" className="text-sm text-gray-700 mb-2 block">
-                Correu electrònic
-              </Label>
-              <Input
-                id="signup-email"
-                type="email"
-                placeholder="nom@correu.com"
-                value={signupData.email}
-                onChange={(e) => setSignupData({ ...signupData, email: e.target.value })}
-                className="h-14 rounded-xl border-gray-200 focus:border-[#E30613] focus:ring-[#E30613]"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="signup-password" className="text-sm text-gray-700 mb-2 block">
-                Contrasenya
-              </Label>
-              <Input
-                id="signup-password"
-                type="password"
-                placeholder="Mínim 6 caràcters"
-                value={signupData.password}
-                onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
-                className="h-14 rounded-xl border-gray-200 focus:border-[#E30613] focus:ring-[#E30613]"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="signup-confirm" className="text-sm text-gray-700 mb-2 block">
-                Confirma la contrasenya
-              </Label>
-              <Input
-                id="signup-confirm"
-                type="password"
-                placeholder="Repeteix la contrasenya"
-                value={signupData.confirmPassword}
-                onChange={(e) => setSignupData({ ...signupData, confirmPassword: e.target.value })}
-                className="h-14 rounded-xl border-gray-200 focus:border-[#E30613] focus:ring-[#E30613]"
-              />
-            </div>
-
-            <div className="pt-4">
-              <Button
-                type="submit"
-                className="w-full h-14 bg-[#E30613] hover:bg-[#C00510] text-white rounded-2xl shadow-lg shadow-[#E30613]/20 flex items-center justify-center gap-2"
-              >
-                Continuar
-                <ChevronRight className="w-5 h-5" />
-              </Button>
-            </div>
-
-            <p className="text-center text-sm text-gray-600 pt-4">
-              Ja tens compte?{' '}
-              <button
-                type="button"
-                onClick={() => setView('login')}
-                className="text-[#E30613]"
-              >
-                Inicia sessió
-              </button>
-            </p>
-          </form>
-        </div>
-
-        {/* Desktop version */}
-        <div className="hidden md:block w-full max-w-3xl mx-auto p-8 md:max-h-screen md:overflow-y-auto">
-          <div className="bg-white rounded-3xl shadow-2xl p-12">
-            <button
-              onClick={() => setView('welcome')}
-              className="text-[#E30613] text-sm flex items-center gap-1 mb-8"
-            >
-              ← Enrere
-            </button>
-
-            <div className="mb-8">
-              <h2 className="mb-2">Crea el teu compte</h2>
-              <p className="text-gray-600">Pas 1 de 2: Dades bàsiques</p>
-            </div>
-
-            {errors.length > 0 && (
-              <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-2xl">
-                {errors.map((error, index) => (
-                  <p key={index} className="text-sm text-red-600">• {error}</p>
-                ))}
-              </div>
-            )}
-
-            <form onSubmit={handleSignupStep1} className="space-y-5">
-              <div>
-                <Label htmlFor="signup-name-desktop" className="text-sm text-gray-700 mb-2 block">
-                  Nom complet
-                </Label>
-                <Input
-                  id="signup-name-desktop"
-                  type="text"
-                  placeholder="Joan Garcia Martí"
-                  value={signupData.name}
-                  onChange={(e) => setSignupData({ ...signupData, name: e.target.value })}
-                  className="h-14 rounded-xl border-gray-200 focus:border-[#E30613] focus:ring-[#E30613]"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="signup-email-desktop" className="text-sm text-gray-700 mb-2 block">
-                  Correu electrònic
-                </Label>
-                <Input
-                  id="signup-email-desktop"
-                  type="email"
-                  placeholder="nom@correu.com"
-                  value={signupData.email}
-                  onChange={(e) => setSignupData({ ...signupData, email: e.target.value })}
-                  className="h-14 rounded-xl border-gray-200 focus:border-[#E30613] focus:ring-[#E30613]"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="signup-password-desktop" className="text-sm text-gray-700 mb-2 block">
-                  Contrasenya
-                </Label>
-                <Input
-                  id="signup-password-desktop"
-                  type="password"
-                  placeholder="Mínim 6 caràcters"
-                  value={signupData.password}
-                  onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
-                  className="h-14 rounded-xl border-gray-200 focus:border-[#E30613] focus:ring-[#E30613]"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="signup-confirm-desktop" className="text-sm text-gray-700 mb-2 block">
-                  Confirma la contrasenya
-                </Label>
-                <Input
-                  id="signup-confirm-desktop"
-                  type="password"
-                  placeholder="Repeteix la contrasenya"
-                  value={signupData.confirmPassword}
-                  onChange={(e) => setSignupData({ ...signupData, confirmPassword: e.target.value })}
-                  className="h-14 rounded-xl border-gray-200 focus:border-[#E30613] focus:ring-[#E30613]"
-                />
-              </div>
-
-              <div className="pt-4">
-                <Button
-                  type="submit"
-                  className="w-full h-14 bg-[#E30613] hover:bg-[#C00510] text-white rounded-2xl shadow-lg shadow-[#E30613]/20 flex items-center justify-center gap-2"
-                >
-                  Continuar
-                  <ChevronRight className="w-5 h-5" />
-                </Button>
-              </div>
-
-              <p className="text-center text-sm text-gray-600 pt-4">
-                Ja tens compte?{' '}
-                <button
-                  type="button"
-                  onClick={() => setView('login')}
-                  className="text-[#E30613]"
-                >
-                  Inicia sessió
-                </button>
-              </p>
-            </form>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Signup Step 2
-  if (view === 'signupStep2') {
-    return (
-      <div className="h-full flex flex-col bg-white overflow-y-auto md:bg-transparent md:items-center md:justify-center md:overflow-hidden w-full">
-        {/* Mobile version */}
-        <div className="md:hidden sticky top-0 bg-white/95 backdrop-blur-lg border-b border-gray-100 p-6 z-10">
-          <button
-            onClick={() => setView('signup')}
-            className="text-[#E30613] text-sm flex items-center gap-1"
-          >
-            ← Enrere
-          </button>
-        </div>
-
-        <div className="md:hidden flex-1 px-8 pt-6 pb-8">
-          <div className="mb-8">
-            <h2 className="mb-2">Informació mèdica</h2>
-            <p className="text-gray-600">Pas 2 de 2: Gairebé fet!</p>
-          </div>
-
-          {errors.length > 0 && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-2xl">
-              {errors.map((error, index) => (
-                <p key={index} className="text-sm text-red-600">• {error}</p>
-              ))}
-            </div>
-          )}
-
-          <form onSubmit={handleSignupStep2} className="space-y-5">
-            <div>
-              <Label htmlFor="signup-phone" className="text-sm text-gray-700 mb-2 block">
-                Telèfon
-              </Label>
-              <Input
-                id="signup-phone"
-                type="tel"
-                placeholder="600 123 456"
-                value={signupData.phone}
-                onChange={(e) => setSignupData({ ...signupData, phone: e.target.value })}
-                className="h-14 rounded-xl border-gray-200 focus:border-[#E30613] focus:ring-[#E30613]"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="signup-birthdate" className="text-sm text-gray-700 mb-2 block">
-                Data de naixement
-              </Label>
-              <Input
-                id="signup-birthdate"
-                type="date"
-                value={signupData.birthDate}
-                onChange={(e) => setSignupData({ ...signupData, birthDate: e.target.value })}
-                className="h-14 rounded-xl border-gray-200 focus:border-[#E30613] focus:ring-[#E30613]"
-                max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
-              />
-              <p className="text-xs text-gray-500 mt-2">Has de tenir entre 18 i 65 anys</p>
-            </div>
-
-            <div>
-              <Label className="text-sm text-gray-700 mb-3 block">
-                Gènere
-              </Label>
-              <div className="grid grid-cols-2 gap-3">
-                {['Home', 'Dona', 'Altre', 'Prefereixo no dir-ho'].map((option) => (
-                  <button
-                    key={option}
-                    type="button"
-                    onClick={() => setSignupData({ ...signupData, gender: option.toLowerCase() })}
-                    className={`px-4 py-4 rounded-xl border-2 transition-all text-sm ${
-                      signupData.gender === option.toLowerCase()
-                        ? 'border-[#E30613] bg-[#E30613]/5 text-[#E30613]'
-                        : 'border-gray-200 hover:border-gray-300 text-gray-700'
-                    }`}
-                  >
-                    {option}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <Label className="text-sm text-gray-700 mb-3 block">
-                Grup sanguini
-              </Label>
-              <div className="grid grid-cols-3 gap-2">
-                {bloodTypes.map((type) => (
-                  <button
-                    key={type}
-                    type="button"
-                    onClick={() => setSignupData({ ...signupData, bloodType: type })}
-                    className={`px-3 py-3 rounded-xl border-2 transition-all ${
-                      signupData.bloodType === type
-                        ? 'border-[#E30613] bg-[#E30613]/5 text-[#E30613]'
-                        : 'border-gray-200 hover:border-gray-300 text-gray-700'
-                    }`}
-                  >
-                    {type}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <Label className="text-sm text-gray-700 mb-3 block">
-                Has donat sang abans?
-              </Label>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setSignupData({ ...signupData, hasDonatedBefore: 'yes' })}
-                  className={`px-4 py-4 rounded-xl border-2 transition-all ${
-                    signupData.hasDonatedBefore === 'yes'
-                      ? 'border-[#E30613] bg-[#E30613]/5 text-[#E30613]'
-                      : 'border-gray-200 hover:border-gray-300 text-gray-700'
-                  }`}
-                >
-                  Sí
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSignupData({ ...signupData, hasDonatedBefore: 'no' })}
-                  className={`px-4 py-4 rounded-xl border-2 transition-all ${
-                    signupData.hasDonatedBefore === 'no'
-                      ? 'border-[#E30613] bg-[#E30613]/5 text-[#E30613]'
-                      : 'border-gray-200 hover:border-gray-300 text-gray-700'
-                  }`}
-                >
-                  No
-                </button>
-              </div>
-            </div>
-
-            <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4">
-              <p className="text-xs text-blue-800">
-                Al crear un compte, acceptes els{' '}
-                <button type="button" className="underline">termes i condicions</button>
-                {' '}i la{' '}
-                <button type="button" className="underline">política de privacitat</button>.
-              </p>
-            </div>
-
-            <div className="pt-4">
-              <Button
-                type="submit"
-                className="w-full h-14 bg-[#E30613] hover:bg-[#C00510] text-white rounded-2xl shadow-lg shadow-[#E30613]/20 flex items-center justify-center gap-2"
-              >
-                <Check className="w-5 h-5" />
-                Crear compte
-              </Button>
-            </div>
-          </form>
-        </div>
-
-        {/* Desktop version */}
-        <div className="hidden md:block w-full max-w-3xl mx-auto p-8 md:max-h-screen md:overflow-y-auto">
-          <div className="bg-white rounded-3xl shadow-2xl p-12">
-            <button
-              onClick={() => setView('welcome')}
-              className="text-[#E30613] text-sm flex items-center gap-1 mb-8"
-            >
-              ← Enrere
-            </button>
-
-            <div className="mb-8">
-              <h2 className="mb-2">Informació mèdica</h2>
-              <p className="text-gray-600">Pas 2 de 2: Gairebé fet!</p>
-            </div>
-
-            {errors.length > 0 && (
-              <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-2xl">
-                {errors.map((error, index) => (
-                  <p key={index} className="text-sm text-red-600">• {error}</p>
-                ))}
-              </div>
-            )}
-
-            <form onSubmit={handleSignupStep2} className="space-y-5">
-              <div>
-                <Label htmlFor="signup-phone-desktop" className="text-sm text-gray-700 mb-2 block">
-                  Telèfon
-                </Label>
-                <Input
-                  id="signup-phone-desktop"
-                  type="tel"
-                  placeholder="600 123 456"
-                  value={signupData.phone}
-                  onChange={(e) => setSignupData({ ...signupData, phone: e.target.value })}
-                  className="h-14 rounded-xl border-gray-200 focus:border-[#E30613] focus:ring-[#E30613]"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="signup-birthdate-desktop" className="text-sm text-gray-700 mb-2 block">
-                  Data de naixement
-                </Label>
-                <Input
-                  id="signup-birthdate-desktop"
-                  type="date"
-                  value={signupData.birthDate}
-                  onChange={(e) => setSignupData({ ...signupData, birthDate: e.target.value })}
-                  className="h-14 rounded-xl border-gray-200 focus:border-[#E30613] focus:ring-[#E30613]"
-                  max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
-                />
-                <p className="text-xs text-gray-500 mt-2">Has de tenir entre 18 i 65 anys</p>
-              </div>
-
-              <div>
-                <Label className="text-sm text-gray-700 mb-3 block">
-                  Gènere
-                </Label>
-                <div className="grid grid-cols-2 gap-3">
-                  {['Home', 'Dona', 'Altre', 'Prefereixo no dir-ho'].map((option) => (
-                    <button
-                      key={option}
-                      type="button"
-                      onClick={() => setSignupData({ ...signupData, gender: option.toLowerCase() })}
-                      className={`px-4 py-4 rounded-xl border-2 transition-all text-sm ${
-                        signupData.gender === option.toLowerCase()
-                          ? 'border-[#E30613] bg-[#E30613]/5 text-[#E30613]'
-                          : 'border-gray-200 hover:border-gray-300 text-gray-700'
-                      }`}
-                    >
-                      {option}
-                    </button>
+              {errors.length > 0 && (
+                <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4">
+                  {errors.map((error, i) => (
+                    <p key={i} className="text-sm text-red-600">{error}</p>
                   ))}
                 </div>
-              </div>
+              )}
 
-              <div>
-                <Label className="text-sm text-gray-700 mb-3 block">
-                  Grup sanguini
-                </Label>
-                <div className="grid grid-cols-3 gap-2">
-                  {bloodTypes.map((type) => (
-                    <button
-                      key={type}
-                      type="button"
-                      onClick={() => setSignupData({ ...signupData, bloodType: type })}
-                      className={`px-3 py-3 rounded-xl border-2 transition-all ${
-                        signupData.bloodType === type
-                          ? 'border-[#E30613] bg-[#E30613]/5 text-[#E30613]'
-                          : 'border-gray-200 hover:border-gray-300 text-gray-700'
-                      }`}
-                    >
-                      {type}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <div className="mt-auto">
+                <Button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full h-14 bg-[#E30613] hover:bg-[#C00510] text-white rounded-2xl shadow-lg"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Iniciant sessió...
+                    </>
+                  ) : (
+                    'Iniciar sessió'
+                  )}
+                </Button>
 
-              <div>
-                <Label className="text-sm text-gray-700 mb-3 block">
-                  Has donat sang abans?
-                </Label>
-                <div className="grid grid-cols-2 gap-3">
+                <p className="text-center text-sm text-gray-600 mt-4">
+                  No tens compte?{' '}
                   <button
                     type="button"
-                    onClick={() => setSignupData({ ...signupData, hasDonatedBefore: 'yes' })}
-                    className={`px-4 py-4 rounded-xl border-2 transition-all ${
-                      signupData.hasDonatedBefore === 'yes'
-                        ? 'border-[#E30613] bg-[#E30613]/5 text-[#E30613]'
-                        : 'border-gray-200 hover:border-gray-300 text-gray-700'
-                    }`}
+                    onClick={() => setView('signup')}
+                    className="text-[#E30613] font-medium"
                   >
-                    Sí
+                    Registra't
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setSignupData({ ...signupData, hasDonatedBefore: 'no' })}
-                    className={`px-4 py-4 rounded-xl border-2 transition-all ${
-                      signupData.hasDonatedBefore === 'no'
-                        ? 'border-[#E30613] bg-[#E30613]/5 text-[#E30613]'
-                        : 'border-gray-200 hover:border-gray-300 text-gray-700'
-                    }`}
-                  >
-                    No
-                  </button>
-                </div>
-              </div>
-
-              <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4">
-                <p className="text-xs text-blue-800">
-                  Al crear un compte, acceptes els{' '}
-                  <button type="button" className="underline">termes i condicions</button>
-                  {' '}i la{' '}
-                  <button type="button" className="underline">política de privacitat</button>.
                 </p>
               </div>
+            </form>
+          </div>
 
-              <div className="pt-4">
+          {/* Desktop version */}
+          <div className="hidden md:block w-full max-w-md mx-auto p-8">
+            <div className="bg-white rounded-3xl shadow-2xl p-8">
+              <button
+                onClick={() => setView('welcome')}
+                className="mb-6 text-gray-600 hover:text-gray-900"
+              >
+                ← Enrere
+              </button>
+
+              <h2 className="mb-2">Benvingut de nou</h2>
+              <p className="text-gray-600 mb-8">Inicia sessió per continuar</p>
+
+              <form onSubmit={handleLogin}>
+                <div className="space-y-4 mb-6">
+                  <div>
+                    <Label htmlFor="email-desktop">Correu electrònic</Label>
+                    <div className="relative mt-2">
+                      <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <Input
+                        id="email-desktop"
+                        type="email"
+                        placeholder="nom@exemple.com"
+                        value={loginData.email}
+                        onChange={(e) => setLoginData({...loginData, email: e.target.value})}
+                        className="pl-12 h-14 rounded-2xl border-2"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="password-desktop">Contrasenya</Label>
+                    <div className="relative mt-2">
+                      <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <Input
+                        id="password-desktop"
+                        type="password"
+                        placeholder="••••••••"
+                        value={loginData.password}
+                        onChange={(e) => setLoginData({...loginData, password: e.target.value})}
+                        className="pl-12 h-14 rounded-2xl border-2"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {errors.length > 0 && (
+                  <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4">
+                    {errors.map((error, i) => (
+                      <p key={i} className="text-sm text-red-600">{error}</p>
+                    ))}
+                  </div>
+                )}
+
                 <Button
                   type="submit"
-                  className="w-full h-14 bg-[#E30613] hover:bg-[#C00510] text-white rounded-2xl shadow-lg shadow-[#E30613]/20 flex items-center justify-center gap-2"
+                  disabled={isLoading}
+                  className="w-full h-14 bg-[#E30613] hover:bg-[#C00510] text-white rounded-2xl shadow-lg"
                 >
-                  <Check className="w-5 h-5" />
-                  Crear compte
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Iniciant sessió...
+                    </>
+                  ) : (
+                    'Iniciar sessió'
+                  )}
                 </Button>
+
+                <p className="text-center text-sm text-gray-600 mt-4">
+                  No tens compte?{' '}
+                  <button
+                    type="button"
+                    onClick={() => setView('signup')}
+                    className="text-[#E30613] font-medium"
+                  >
+                    Registra't
+                  </button>
+                </p>
+              </form>
+            </div>
+          </div>
+        </motion.div>
+      </AnimatePresence>
+    );
+  }
+
+  // Signup Screen - Step 1
+  if (view === 'signup') {
+    return (
+      <AnimatePresence>
+        <motion.div
+          initial={{ opacity: 0, x: 50 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -50 }}
+          className="h-full flex flex-col bg-white md:bg-transparent md:flex md:items-center md:justify-center w-full"
+        >
+          {/* Mobile version */}
+          <div className="md:hidden flex-1 flex flex-col px-8 py-12 max-w-md mx-auto w-full">
+            <button
+              onClick={() => setView('welcome')}
+              className="self-start mb-8 text-gray-600 hover:text-gray-900"
+            >
+              ← Enrere
+            </button>
+
+            <h2 className="mb-2">Crea el teu compte</h2>
+            <p className="text-gray-600 mb-8">Pas 1 de 2</p>
+
+            <form onSubmit={handleSignupStep1} className="flex-1 flex flex-col">
+              <div className="space-y-4 mb-6">
+                <div>
+                  <Label htmlFor="name">Nom complet</Label>
+                  <div className="relative mt-2">
+                    <User className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <Input
+                      id="name"
+                      type="text"
+                      placeholder="Joan Garcia"
+                      value={signupData.name}
+                      onChange={(e) => setSignupData({...signupData, name: e.target.value})}
+                      className="pl-12 h-14 rounded-2xl border-2"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="signup-email">Correu electrònic</Label>
+                  <div className="relative mt-2">
+                    <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <Input
+                      id="signup-email"
+                      type="email"
+                      placeholder="nom@exemple.com"
+                      value={signupData.email}
+                      onChange={(e) => setSignupData({...signupData, email: e.target.value})}
+                      className="pl-12 h-14 rounded-2xl border-2"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="signup-password">Contrasenya</Label>
+                  <div className="relative mt-2">
+                    <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <Input
+                      id="signup-password"
+                      type="password"
+                      placeholder="Almenys 6 caràcters"
+                      value={signupData.password}
+                      onChange={(e) => setSignupData({...signupData, password: e.target.value})}
+                      className="pl-12 h-14 rounded-2xl border-2"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="confirm-password">Confirma la contrasenya</Label>
+                  <div className="relative mt-2">
+                    <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <Input
+                      id="confirm-password"
+                      type="password"
+                      placeholder="Repeteix la contrasenya"
+                      value={signupData.confirmPassword}
+                      onChange={(e) => setSignupData({...signupData, confirmPassword: e.target.value})}
+                      className="pl-12 h-14 rounded-2xl border-2"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {errors.length > 0 && (
+                <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4">
+                  {errors.map((error, i) => (
+                    <p key={i} className="text-sm text-red-600">{error}</p>
+                  ))}
+                </div>
+              )}
+
+              <div className="mt-auto">
+                <Button
+                  type="submit"
+                  className="w-full h-14 bg-[#E30613] hover:bg-[#C00510] text-white rounded-2xl shadow-lg"
+                >
+                  Continuar
+                  <ChevronRight className="w-5 h-5 ml-2" />
+                </Button>
+
+                <p className="text-center text-sm text-gray-600 mt-4">
+                  Ja tens compte?{' '}
+                  <button
+                    type="button"
+                    onClick={() => setView('login')}
+                    className="text-[#E30613] font-medium"
+                  >
+                    Inicia sessió
+                  </button>
+                </p>
               </div>
             </form>
           </div>
-        </div>
-      </div>
+
+          {/* Desktop version */}
+          <div className="hidden md:block w-full max-w-md mx-auto p-8">
+            <div className="bg-white rounded-3xl shadow-2xl p-8">
+              <button
+                onClick={() => setView('welcome')}
+                className="mb-6 text-gray-600 hover:text-gray-900"
+              >
+                ← Enrere
+              </button>
+
+              <h2 className="mb-2">Crea el teu compte</h2>
+              <p className="text-gray-600 mb-8">Pas 1 de 2</p>
+
+              <form onSubmit={handleSignupStep1}>
+                <div className="space-y-4 mb-6">
+                  <div>
+                    <Label htmlFor="name-desktop">Nom complet</Label>
+                    <div className="relative mt-2">
+                      <User className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <Input
+                        id="name-desktop"
+                        type="text"
+                        placeholder="Joan Garcia"
+                        value={signupData.name}
+                        onChange={(e) => setSignupData({...signupData, name: e.target.value})}
+                        className="pl-12 h-14 rounded-2xl border-2"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="signup-email-desktop">Correu electrònic</Label>
+                    <div className="relative mt-2">
+                      <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <Input
+                        id="signup-email-desktop"
+                        type="email"
+                        placeholder="nom@exemple.com"
+                        value={signupData.email}
+                        onChange={(e) => setSignupData({...signupData, email: e.target.value})}
+                        className="pl-12 h-14 rounded-2xl border-2"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="signup-password-desktop">Contrasenya</Label>
+                    <div className="relative mt-2">
+                      <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <Input
+                        id="signup-password-desktop"
+                        type="password"
+                        placeholder="Almenys 6 caràcters"
+                        value={signupData.password}
+                        onChange={(e) => setSignupData({...signupData, password: e.target.value})}
+                        className="pl-12 h-14 rounded-2xl border-2"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="confirm-password-desktop">Confirma la contrasenya</Label>
+                    <div className="relative mt-2">
+                      <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <Input
+                        id="confirm-password-desktop"
+                        type="password"
+                        placeholder="Repeteix la contrasenya"
+                        value={signupData.confirmPassword}
+                        onChange={(e) => setSignupData({...signupData, confirmPassword: e.target.value})}
+                        className="pl-12 h-14 rounded-2xl border-2"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {errors.length > 0 && (
+                  <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4">
+                    {errors.map((error, i) => (
+                      <p key={i} className="text-sm text-red-600">{error}</p>
+                    ))}
+                  </div>
+                )}
+
+                <Button
+                  type="submit"
+                  className="w-full h-14 bg-[#E30613] hover:bg-[#C00510] text-white rounded-2xl shadow-lg"
+                >
+                  Continuar
+                  <ChevronRight className="w-5 h-5 ml-2" />
+                </Button>
+
+                <p className="text-center text-sm text-gray-600 mt-4">
+                  Ja tens compte?{' '}
+                  <button
+                    type="button"
+                    onClick={() => setView('login')}
+                    className="text-[#E30613] font-medium"
+                  >
+                    Inicia sessió
+                  </button>
+                </p>
+              </form>
+            </div>
+          </div>
+        </motion.div>
+      </AnimatePresence>
+    );
+  }
+
+  // Signup Screen - Step 2
+  if (view === 'signupStep2') {
+    return (
+      <AnimatePresence>
+        <motion.div
+          initial={{ opacity: 0, x: 50 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -50 }}
+          className="h-full flex flex-col bg-white md:bg-transparent md:flex md:items-center md:justify-center w-full"
+        >
+          {/* Mobile version */}
+          <div className="md:hidden flex-1 flex flex-col px-8 py-12 max-w-md mx-auto w-full">
+            <button
+              onClick={() => setView('signup')}
+              className="self-start mb-8 text-gray-600 hover:text-gray-900"
+            >
+              ← Enrere
+            </button>
+
+            <h2 className="mb-2">Informació adicional</h2>
+            <p className="text-gray-600 mb-8">Pas 2 de 2</p>
+
+            <form onSubmit={handleSignupStep2} className="flex-1 flex flex-col">
+              <div className="space-y-4 mb-6">
+                <div>
+                  <Label htmlFor="phone">Telèfon</Label>
+                  <div className="relative mt-2">
+                    <Phone className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <Input
+                      id="phone"
+                      type="tel"
+                      placeholder="612345678"
+                      value={signupData.phone}
+                      onChange={(e) => setSignupData({...signupData, phone: e.target.value})}
+                      className="pl-12 h-14 rounded-2xl border-2"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="birthdate">Data de naixement</Label>
+                  <div className="relative mt-2">
+                    <Calendar className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <Input
+                      id="birthdate"
+                      type="date"
+                      value={signupData.birthdate}
+                      onChange={(e) => setSignupData({...signupData, birthdate: e.target.value})}
+                      className="pl-12 h-14 rounded-2xl border-2"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="gender">Gènere</Label>
+                  <select
+                    id="gender"
+                    value={signupData.gender}
+                    onChange={(e) => setSignupData({...signupData, gender: e.target.value})}
+                    className="w-full h-14 rounded-2xl border-2 px-4 bg-white"
+                  >
+                    <option value="">Selecciona una opció</option>
+                    <option value="home">Home</option>
+                    <option value="dona">Dona</option>
+                    <option value="altre">Altre</option>
+                    <option value="no-especificar">Prefereixo no especificar</option>
+                  </select>
+                </div>
+
+                <div>
+                  <Label htmlFor="bloodType">Grup sanguini</Label>
+                  <select
+                    id="bloodType"
+                    value={signupData.bloodType}
+                    onChange={(e) => setSignupData({...signupData, bloodType: e.target.value})}
+                    className="w-full h-14 rounded-2xl border-2 px-4 bg-white"
+                  >
+                    <option value="">Selecciona el teu grup</option>
+                    {bloodTypes.map(type => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <Label>Has donat sang abans?</Label>
+                  <div className="flex gap-4 mt-2">
+                    <button
+                      type="button"
+                      onClick={() => setSignupData({...signupData, hasDonatedBefore: 'yes'})}
+                      className={`flex-1 h-14 rounded-2xl border-2 transition-all ${
+                        signupData.hasDonatedBefore === 'yes'
+                          ? 'bg-[#E30613] border-[#E30613] text-white'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      Sí
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSignupData({...signupData, hasDonatedBefore: 'no'})}
+                      className={`flex-1 h-14 rounded-2xl border-2 transition-all ${
+                        signupData.hasDonatedBefore === 'no'
+                          ? 'bg-[#E30613] border-[#E30613] text-white'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      No
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {errors.length > 0 && (
+                <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4">
+                  {errors.map((error, i) => (
+                    <p key={i} className="text-sm text-red-600">{error}</p>
+                  ))}
+                </div>
+              )}
+
+              <div className="mt-auto">
+                <Button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full h-14 bg-[#E30613] hover:bg-[#C00510] text-white rounded-2xl shadow-lg"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Creant compte...
+                    </>
+                  ) : (
+                    <>
+                      Crear compte
+                      <Check className="w-5 h-5 ml-2" />
+                    </>
+                  )}
+                </Button>
+
+                <p className="text-center text-sm text-gray-600 mt-4">
+                  Ja tens compte?{' '}
+                  <button
+                    type="button"
+                    onClick={() => setView('login')}
+                    className="text-[#E30613] font-medium"
+                  >
+                    Inicia sessió
+                  </button>
+                </p>
+              </div>
+            </form>
+          </div>
+
+          {/* Desktop version */}
+          <div className="hidden md:block w-full max-w-md mx-auto p-8">
+            <div className="bg-white rounded-3xl shadow-2xl p-8">
+              <button
+                onClick={() => setView('signup')}
+                className="mb-6 text-gray-600 hover:text-gray-900"
+              >
+                ← Enrere
+              </button>
+
+              <h2 className="mb-2">Informació adicional</h2>
+              <p className="text-gray-600 mb-8">Pas 2 de 2</p>
+
+              <form onSubmit={handleSignupStep2}>
+                <div className="space-y-4 mb-6">
+                  <div>
+                    <Label htmlFor="phone-desktop">Telèfon</Label>
+                    <div className="relative mt-2">
+                      <Phone className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <Input
+                        id="phone-desktop"
+                        type="tel"
+                        placeholder="612345678"
+                        value={signupData.phone}
+                        onChange={(e) => setSignupData({...signupData, phone: e.target.value})}
+                        className="pl-12 h-14 rounded-2xl border-2"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="birthdate-desktop">Data de naixement</Label>
+                    <div className="relative mt-2">
+                      <Calendar className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <Input
+                        id="birthdate-desktop"
+                        type="date"
+                        value={signupData.birthdate}
+                        onChange={(e) => setSignupData({...signupData, birthdate: e.target.value})}
+                        className="pl-12 h-14 rounded-2xl border-2"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="gender-desktop">Gènere</Label>
+                    <select
+                      id="gender-desktop"
+                      value={signupData.gender}
+                      onChange={(e) => setSignupData({...signupData, gender: e.target.value})}
+                      className="w-full h-14 rounded-2xl border-2 px-4 bg-white"
+                    >
+                      <option value="">Selecciona una opció</option>
+                      <option value="home">Home</option>
+                      <option value="dona">Dona</option>
+                      <option value="altre">Altre</option>
+                      <option value="no-especificar">Prefereixo no especificar</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="bloodType-desktop">Grup sanguini</Label>
+                    <select
+                      id="bloodType-desktop"
+                      value={signupData.bloodType}
+                      onChange={(e) => setSignupData({...signupData, bloodType: e.target.value})}
+                      className="w-full h-14 rounded-2xl border-2 px-4 bg-white"
+                    >
+                      <option value="">Selecciona el teu grup</option>
+                      {bloodTypes.map(type => (
+                        <option key={type} value={type}>{type}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <Label>Has donat sang abans?</Label>
+                    <div className="flex gap-4 mt-2">
+                      <button
+                        type="button"
+                        onClick={() => setSignupData({...signupData, hasDonatedBefore: 'yes'})}
+                        className={`flex-1 h-14 rounded-2xl border-2 transition-all ${
+                          signupData.hasDonatedBefore === 'yes'
+                            ? 'bg-[#E30613] border-[#E30613] text-white'
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        Sí
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSignupData({...signupData, hasDonatedBefore: 'no'})}
+                        className={`flex-1 h-14 rounded-2xl border-2 transition-all ${
+                          signupData.hasDonatedBefore === 'no'
+                            ? 'bg-[#E30613] border-[#E30613] text-white'
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        No
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {errors.length > 0 && (
+                  <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4">
+                    {errors.map((error, i) => (
+                      <p key={i} className="text-sm text-red-600">{error}</p>
+                    ))}
+                  </div>
+                )}
+
+                <Button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full h-14 bg-[#E30613] hover:bg-[#C00510] text-white rounded-2xl shadow-lg"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Creant compte...
+                    </>
+                  ) : (
+                    <>
+                      Crear compte
+                      <Check className="w-5 h-5 ml-2" />
+                    </>
+                  )}
+                </Button>
+
+                <p className="text-center text-sm text-gray-600 mt-4">
+                  Ja tens compte?{' '}
+                  <button
+                    type="button"
+                    onClick={() => setView('login')}
+                    className="text-[#E30613] font-medium"
+                  >
+                    Inicia sessió
+                  </button>
+                </p>
+              </form>
+            </div>
+          </div>
+        </motion.div>
+      </AnimatePresence>
     );
   }
 
