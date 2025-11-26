@@ -2,7 +2,7 @@ import { createApp } from './app';
 import { connectDatabase } from './config/database';
 import { env } from './config/env';
 
-console.log('\n✅ All modules loaded successfully\n');
+console.log('\n✅ All modules loaded successfully. Server updated: ' + new Date().toISOString() + '\n');
 
 /**
  * Start the server

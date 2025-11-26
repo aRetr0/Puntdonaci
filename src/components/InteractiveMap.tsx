@@ -1,26 +1,29 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Map, { Marker, NavigationControl, Popup } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { MapPin, Navigation2, Locate, Truck, Building2 } from 'lucide-react';
 import { useDonationCenters } from '@/hooks/useDonationCenters';
 import { DonationCenter } from '@/types';
+import { toast } from 'sonner';
 
 interface InteractiveMapProps {
   onPointClick?: (pointId: string) => void;
+  centers?: DonationCenter[];
+  onUserLocationChange?: (location: [number, number]) => void;
 }
 
-export function InteractiveMap({ onPointClick }: InteractiveMapProps) {
+export function InteractiveMap({ onPointClick, centers, onUserLocationChange }: InteractiveMapProps) {
   const [viewState, setViewState] = useState({
-    longitude: 2.1734,
-    latitude: 41.3851,
-    zoom: 13.5
+    longitude: 1.5209,
+    latitude: 41.5912,
+    zoom: 8
   });
 
-  const [userLocation, setUserLocation] = useState<[number, number]>([2.1734, 41.3851]);
-  const [showUserLocation, setShowUserLocation] = useState(true);
+  const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [selectedPoint, setSelectedPoint] = useState<DonationCenter | null>(null);
 
-  const { data: donationCenters = [] } = useDonationCenters();
+  const { data: fetchedCenters = [] } = useDonationCenters({ enabled: !centers });
+  const donationCenters = centers || fetchedCenters;
 
   const handleLocateUser = () => {
     // Try to get actual geolocation
@@ -28,26 +31,27 @@ export function InteractiveMap({ onPointClick }: InteractiveMapProps) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const { longitude, latitude } = position.coords;
-          setUserLocation([longitude, latitude]);
+          const newLocation: [number, number] = [longitude, latitude];
+          setUserLocation(newLocation);
           setViewState({
             longitude,
             latitude,
             zoom: 14
           });
-          setShowUserLocation(true);
+          onUserLocationChange?.(newLocation);
         },
         () => {
-          // Fallback to default Barcelona location
-          setUserLocation([2.1734, 41.3851]);
-          setShowUserLocation(true);
+          toast.error("No s'ha pogut obtenir la teva ubicació");
         }
       );
     } else {
-      // Fallback if geolocation not supported
-      setUserLocation([2.1734, 41.3851]);
-      setShowUserLocation(true);
+      toast.error("El teu navegador no suporta geolocalització");
     }
   };
+
+  useEffect(() => {
+    handleLocateUser();
+  }, []);
 
   return (
     <div className="relative w-full h-full">
@@ -61,7 +65,7 @@ export function InteractiveMap({ onPointClick }: InteractiveMapProps) {
         <NavigationControl position="top-right" />
 
         {/* User location marker */}
-        {showUserLocation && (
+        {userLocation && (
           <Marker
             longitude={userLocation[0]}
             latitude={userLocation[1]}
@@ -76,7 +80,7 @@ export function InteractiveMap({ onPointClick }: InteractiveMapProps) {
 
         {/* Donation Point Markers */}
         {donationCenters.map((point) => (
-          <div key={point.id}>
+          <div key={point._id || point.id}>
             <Marker
               longitude={point.coordinates.lng}
               latitude={point.coordinates.lat}
@@ -84,7 +88,7 @@ export function InteractiveMap({ onPointClick }: InteractiveMapProps) {
               onClick={(e) => {
                 e.originalEvent.stopPropagation();
                 setSelectedPoint(point);
-                onPointClick?.(point.id);
+                onPointClick?.(point._id || point.id || '');
               }}
             >
               <div
@@ -117,7 +121,7 @@ export function InteractiveMap({ onPointClick }: InteractiveMapProps) {
               </div>
             </Marker>
 
-            {selectedPoint?.id === point.id && (
+            {((selectedPoint?._id && selectedPoint._id === point._id) || (selectedPoint?.id && selectedPoint.id === point.id)) && (
               <Popup
                 longitude={point.coordinates.lng}
                 latitude={point.coordinates.lat}
@@ -143,14 +147,6 @@ export function InteractiveMap({ onPointClick }: InteractiveMapProps) {
         ))}
       </Map>
 
-      {/* Location Badge */}
-      <div className="absolute top-4 left-4 bg-white/95 backdrop-blur-md rounded-2xl px-4 py-2.5 shadow-xl text-sm z-10 border border-gray-200/50 pointer-events-none">
-        <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
-          <span className="font-medium text-gray-900">Barcelona, Eixample</span>
-        </div>
-      </div>
-
       {/* Custom Geolocate Button */}
       <button
         onClick={handleLocateUser}
@@ -174,10 +170,12 @@ export function InteractiveMap({ onPointClick }: InteractiveMapProps) {
               <p className="text-xs text-gray-600">Toca per veure detalls</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 text-xs text-gray-500">
-            <Navigation2 className="w-4 h-4" />
-            <span>Geolocalització activa</span>
-          </div>
+          {userLocation && (
+            <div className="flex items-center gap-2 text-xs text-gray-500">
+              <Navigation2 className="w-4 h-4" />
+              <span>Geolocalització activa</span>
+            </div>
+          )}
         </div>
       </div>
     </div>

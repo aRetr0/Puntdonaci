@@ -12,7 +12,8 @@ export async function getDonationCenters(
   next: NextFunction
 ): Promise<void> {
   try {
-    const centers = await DonationCenter.find({ openNow: true }).sort({ name: 1 });
+    // Return all centers, regardless of open status
+    const centers = await DonationCenter.find({}).sort({ name: 1 });
 
     sendSuccess(res, centers);
   } catch (error) {
@@ -75,8 +76,7 @@ export async function getNearbyDonationCenters(
           $maxDistance: radiusInMeters,
         },
       },
-      openNow: true,
-    }).limit(20);
+    }).limit(100);
 
     sendSuccess(res, centers);
   } catch (error) {

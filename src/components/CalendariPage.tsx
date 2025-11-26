@@ -21,20 +21,30 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { calculateDistance, formatDistance } from '@/components/ui/utils';
 
 type ViewType = 'request' | 'myAppointments';
-type RequestStep = 'type' | 'location' | 'date' | 'time' | 'confirm';
+type RequestStep = 'location' | 'type' | 'date' | 'time' | 'confirm';
 
 export function CalendariPage() {
   // API hooks
-  const { data: centersResponse, isLoading: loadingCenters } = useDonationCenters();
+  const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+  
+  const { data: allCenters = [], isLoading: loadingCenters } = useDonationCenters();
   const { data: appointmentsResponse, isLoading: loadingAppointments } = useAppointments();
   const createAppointment = useCreateAppointment();
   const cancelAppointment = useCancelAppointment();
 
   // State
   const [activeView, setActiveView] = useState<ViewType>('request');
-  const [requestStep, setRequestStep] = useState<RequestStep>('type');
+  const [requestStep, setRequestStep] = useState<RequestStep>('location');
+  const [filterType, setFilterType] = useState<'all' | 'fix' | 'mobile'>('all');
 
   const [selectedDonationType, setSelectedDonationType] = useState<string | null>(null);
   const [selectedPoint, setSelectedPoint] = useState<string | null>(null);
@@ -45,12 +55,25 @@ export function CalendariPage() {
   const [selectedCalendarDate, setSelectedCalendarDate] = useState<string | null>(null);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
 
-  // Extract data from API responses
-  const donationCenters = centersResponse || [];
+  // Process centers: Filter and Sort
+  const filteredCenters = allCenters.filter((center: DonationCenter) => {
+    if (filterType === 'all') return true;
+    return center.type === filterType;
+  });
+
+  const sortedCenters = userLocation 
+    ? [...filteredCenters].sort((a, b) => {
+        const distA = calculateDistance(userLocation[1], userLocation[0], a.coordinates.lat, a.coordinates.lng);
+        const distB = calculateDistance(userLocation[1], userLocation[0], b.coordinates.lat, b.coordinates.lng);
+        return distA - distB;
+      })
+    : filteredCenters;
+
+  const donationCenters = sortedCenters;
   const myAppointments = appointmentsResponse || [];
 
   const donationTypes = [
-    { id: 'sang-total', name: 'Sang Total', icon: '🩸', duration: '30-45 min', tokens: 15 },
+    { id: 'sang_total', name: 'Sang Total', icon: '🩸', duration: '30-45 min', tokens: 15 },
     { id: 'plaquetes', name: 'Plaquetes', icon: '💉', duration: '90 min', tokens: 20 },
     { id: 'plasma', name: 'Plasma', icon: '💧', duration: '60 min', tokens: 18 },
   ];
@@ -112,7 +135,7 @@ export function CalendariPage() {
     }
   };
 
-  const selectedPointData = donationCenters.find((p: DonationCenter) => p.id === selectedPoint);
+  const selectedPointData = donationCenters.find((p: DonationCenter) => (p._id || p.id) === selectedPoint);
   const selectedTypeData = donationTypes.find(t => t.id === selectedDonationType);
   const selectedDateData = availableDates.find(d => d.date === selectedDate);
 
@@ -151,7 +174,7 @@ export function CalendariPage() {
                 onClick={() => {
                   setBookingConfirmed(false);
                   setActiveView('myAppointments');
-                  setRequestStep('type');
+                  setRequestStep('location');
                   setSelectedDonationType(null);
                   setSelectedPoint(null);
                   setSelectedDate(null);
@@ -165,7 +188,7 @@ export function CalendariPage() {
                 variant="outline"
                 onClick={() => {
                   setBookingConfirmed(false);
-                  setRequestStep('type');
+                  setRequestStep('location');
                   setSelectedDonationType(null);
                   setSelectedPoint(null);
                   setSelectedDate(null);
@@ -191,7 +214,7 @@ export function CalendariPage() {
           <Button
             onClick={() => {
               setActiveView('request');
-              setRequestStep('type');
+              setRequestStep('location');
             }}
             className={`flex-1 h-12 ${activeView === 'request'
               ? 'bg-[#E30613] text-white hover:bg-[#C00510]'
@@ -363,7 +386,7 @@ export function CalendariPage() {
 
                   return filteredAppointments.map((appointment: AppointmentWithDetails) => {
                     const typeData = donationTypes.find(t => t.id === appointment.donationType);
-                    const center = donationCenters.find((c: DonationCenter) => c.id === appointment.donationCenterId);
+                    const center = donationCenters.find((c: DonationCenter) => (c._id || c.id) === appointment.donationCenterId);
 
                     return (
                       <div
@@ -416,7 +439,7 @@ export function CalendariPage() {
                   <div className="space-y-3">
                     {myAppointments.filter((a: AppointmentWithDetails) => a.status === 'completed').map((appointment: AppointmentWithDetails) => {
                       const typeData = donationTypes.find(t => t.id === appointment.donationType);
-                      const center = donationCenters.find((c: DonationCenter) => c.id === appointment.donationCenterId);
+                      const center = donationCenters.find((c: DonationCenter) => (c._id || c.id) === appointment.donationCenterId);
 
                       return (
                         <div
@@ -453,123 +476,42 @@ export function CalendariPage() {
         </div>
       )}
 
-      {/* Appointment Detail View */}
-      {activeView === 'myAppointments' && selectedAppointment && (
-        <div className="flex-1 overflow-y-auto">
-          {(() => {
-            const appointment = myAppointments.find((a: AppointmentWithDetails) => a.id === selectedAppointment);
-            if (!appointment) return null;
-
-            const typeData = donationTypes.find(t => t.id === appointment.donationType);
-            const center = donationCenters.find((c: DonationCenter) => c.id === appointment.donationCenterId);
-
-            return (
-              <>
-                <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center gap-3 z-10">
-                  <button onClick={() => setSelectedAppointment(null)} className="text-gray-600">
-                    ← Tornar
-                  </button>
-                  <h3>Detalls de la cita</h3>
-                </div>
-
-                <div className="p-6 space-y-6">
-                  <div className="bg-gradient-to-r from-[#E30613] to-[#FF4444] rounded-2xl p-6 text-white text-center">
-                    <div className="text-5xl mb-3">{typeData?.icon || '🩸'}</div>
-                    <h2 className="text-white mb-2">{typeData?.name || appointment.donationType}</h2>
-                    <p className="text-white/90">{center?.name || 'Centre de donació'}</p>
-                  </div>
-
-                  <div className="bg-white rounded-2xl p-5 shadow-md space-y-4">
-                    <div>
-                      <p className="text-sm text-gray-600 mb-1">Data i hora</p>
-                      <p className="text-lg">
-                        {new Date(appointment.date).toLocaleDateString('ca-ES', {
-                          weekday: 'long',
-                          day: 'numeric',
-                          month: 'long',
-                          year: 'numeric'
-                        })}
-                      </p>
-                      <p className="text-lg text-[#E30613]">{appointment.time}</p>
-                    </div>
-
-                    <div className="border-t pt-4">
-                      <p className="text-sm text-gray-600 mb-1">Lloc</p>
-                      <p className="text-lg">{center?.name || 'Centre de donació'}</p>
-                      <p className="text-sm text-gray-600">{center?.address || ''}</p>
-                    </div>
-
-                    <div className="border-t pt-4">
-                      <p className="text-sm text-gray-600 mb-1">Estat</p>
-                      <Badge className={`${appointment.status === 'scheduled'
-                        ? 'bg-green-100 text-green-700 border-0'
-                        : appointment.status === 'completed'
-                          ? 'bg-gray-100 text-gray-700 border-0'
-                          : 'bg-orange-100 text-orange-700 border-0'
-                        }`}>
-                        {appointment.status === 'scheduled' && '✓ Confirmada'}
-                        {appointment.status === 'completed' && '✓ Completada'}
-                        {appointment.status === 'cancelled' && '✗ Cancel·lada'}
-                      </Badge>
-                    </div>
-
-                    {appointment.status === 'completed' && (
-                      <div className="border-t pt-4">
-                        <p className="text-sm text-gray-600 mb-1">Tokens guanyats</p>
-                        <p className="text-2xl text-green-600">+{typeData?.tokens || 15} tokens</p>
-                      </div>
-                    )}
-                  </div>
-
-                  {appointment.status !== 'completed' && appointment.status !== 'cancelled' && (
-                    <div className="bg-blue-50 rounded-2xl p-4 border border-blue-100">
-                      <h4 className="text-sm text-blue-900 mb-2">💡 Recorda</h4>
-                      <ul className="text-xs text-blue-800 space-y-1">
-                        <li>• Vine en dejú o amb esmorzar lleuger</li>
-                        <li>• Porta el DNI o document identificatiu</li>
-                        <li>• Arriba 10 minuts abans de la teva hora</li>
-                      </ul>
-                    </div>
-                  )}
-
-                  {appointment.status === 'scheduled' && (
-                    <Button
-                      variant="outline"
-                      className="w-full border-red-200 text-red-600 hover:bg-red-50"
-                      onClick={() => setShowCancelDialog(true)}
-                    >
-                      Cancel·lar cita
-                    </Button>
-                  )}
-                </div>
-              </>
-            );
-          })()}
-        </div>
-      )}
-
       {/* Request Appointment Flow */}
       {activeView === 'request' && (
         <>
           {/* Step 0: Map View with nearby points */}
-          {requestStep === 'type' && (
+          {requestStep === 'location' && (
             <div className="flex-1 flex flex-col">
               {/* Filters */}
               <div className="bg-white border-b border-gray-200 p-4">
                 <div className="flex gap-2">
-                  <Button variant="outline" className="flex-1">
-                    <Filter className="w-4 h-4 mr-2" />
-                    Filtres
-                  </Button>
-                  <Button variant="outline" className="px-4">
-                    <Navigation className="w-4 h-4" />
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" className="flex-1">
+                        <Filter className="w-4 h-4 mr-2" />
+                        {filterType === 'all' ? 'Tots els punts' : filterType === 'fix' ? 'Només Hospitals' : 'Unitats Mòbils'}
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      <DropdownMenuItem onClick={() => setFilterType('all')}>
+                        Tots els punts
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setFilterType('fix')}>
+                        Només Hospitals
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setFilterType('mobile')}>
+                        Unitats Mòbils
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
 
               {/* Map Preview */}
               <div className="h-64 md:h-80 relative overflow-hidden">
                 <InteractiveMap
+                  centers={donationCenters}
+                  onUserLocationChange={setUserLocation}
                   onPointClick={(pointId) => {
                     setSelectedPoint(String(pointId));
                     setRequestStep('type');
@@ -585,53 +527,85 @@ export function CalendariPage() {
                   </div>
                 ) : (
                   <>
-                    <p className="text-sm text-gray-600 mb-2">{donationCenters.length} punts propers a tu</p>
+                    <p className="text-sm text-gray-600 mb-2">
+                      {donationCenters.length} {userLocation ? 'punts trobats prop de tu' : 'punts disponibles'}
+                    </p>
 
-                    {donationCenters.map((center: DonationCenter) => (
-                      <div
-                        key={center.id}
-                        onClick={() => {
-                          setSelectedPoint(center.id);
-                          setRequestStep('type');
-                        }}
-                        className="bg-white rounded-2xl p-4 shadow-md hover:shadow-lg transition-all cursor-pointer border-2 border-transparent hover:border-[#E30613]"
-                      >
-                        <div className="flex justify-between items-start mb-3">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <h4 className="text-sm">{center.name}</h4>
-                              {center.type === 'mobile' && (
-                                <Badge className="bg-purple-100 text-purple-700 border-0 text-xs">
-                                  🚐 Mòbil
-                                </Badge>
+                    {donationCenters.slice(0, 20).map((center: DonationCenter) => {
+                      // Calculate distance if user location is available
+                      let distanceStr = '';
+                      if (userLocation) {
+                        const dist = calculateDistance(
+                          userLocation[1], 
+                          userLocation[0], 
+                          center.coordinates.lat, 
+                          center.coordinates.lng
+                        );
+                        distanceStr = formatDistance(dist);
+                      }
+
+                      return (
+                        <div
+                          key={center._id || center.id}
+                          onClick={() => {
+                            setSelectedPoint(center._id || center.id || '');
+                            setRequestStep('type');
+                          }}
+                          className="bg-white rounded-2xl p-4 shadow-md hover:shadow-lg transition-all cursor-pointer border-2 border-transparent hover:border-[#E30613]"
+                        >
+                          <div className="flex justify-between items-start mb-3">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h4 className="text-sm font-medium">{center.name}</h4>
+                                {center.type === 'mobile' && (
+                                  <Badge className="bg-purple-100 text-purple-700 border-0 text-xs">
+                                    🚐 Mòbil
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-xs text-gray-600 flex items-center gap-1 mb-2">
+                                <MapPin className="w-3 h-3" />
+                                {center.address}
+                              </p>
+                            </div>
+                            <div className="flex flex-col items-end gap-1">
+                              <ChevronRight className="w-5 h-5 text-gray-400" />
+                              {distanceStr && (
+                                <span className="text-xs font-medium text-[#E30613]">{distanceStr}</span>
                               )}
                             </div>
-                            <p className="text-xs text-gray-600 flex items-center gap-1 mb-2">
-                              <MapPin className="w-3 h-3" />
-                              {center.address}
-                            </p>
                           </div>
-                          <ChevronRight className="w-5 h-5 text-gray-400" />
-                        </div>
 
-                        <div className="flex items-center gap-2 mb-3">
-                          <Badge variant="outline" className="text-xs">
-                            📍 {center.city}
-                          </Badge>
-                          <Badge className="bg-green-100 text-green-700 border-0 text-xs">
-                            Obert ara
-                          </Badge>
-                        </div>
+                          <div className="flex items-center gap-2 mb-3">
+                            <Badge variant="outline" className="text-xs">
+                              📍 {center.city}
+                            </Badge>
+                            {center.openNow ? (
+                              <Badge className="bg-green-100 text-green-700 border-0 text-xs">
+                                Obert ara
+                              </Badge>
+                            ) : (
+                              <Badge variant="secondary" className="text-xs">
+                                Tancat
+                              </Badge>
+                            )}
+                          </div>
 
-                        <div className="flex flex-wrap gap-1">
-                          {donationTypes.map((type) => (
-                            <span key={type.id} className="text-xs bg-gray-100 px-2 py-1 rounded">
-                              {type.icon} {type.name}
-                            </span>
-                          ))}
+                          <div className="flex flex-wrap gap-1">
+                            {donationTypes.map((type) => (
+                              <span key={type.id} className="text-xs bg-gray-100 px-2 py-1 rounded">
+                                {type.icon} {type.name}
+                              </span>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
+                    {donationCenters.length > 20 && (
+                      <p className="text-center text-xs text-gray-500 pt-2">
+                        Mostrant els 20 resultats més propers
+                      </p>
+                    )}
                   </>
                 )}
               </div>
@@ -643,7 +617,7 @@ export function CalendariPage() {
             <div className="flex-1 overflow-y-auto">
               <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center gap-3 z-10">
                 <button onClick={() => {
-                  setRequestStep('type');
+                  setRequestStep('location');
                   setSelectedPoint(null);
                 }} className="text-gray-600">
                   ← Tornar

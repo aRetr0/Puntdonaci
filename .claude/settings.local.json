@@ -10,7 +10,13 @@
       "Bash(npm run dev:*)",
       "Bash(mongosh:*)",
       "Bash(killall:*)",
-      "Bash(npx tsx:*)"
+      "Bash(npx tsx:*)",
+      "Bash(cat:*)",
+      "Bash(node --version:*)",
+      "Bash(npm --version:*)",
+      "Bash(npm run investigate:*)",
+      "Bash(npm run seed:real:*)",
+      "Bash(npm run verify:geojson:*)"
     ],
     "deny": [],
     "ask": []

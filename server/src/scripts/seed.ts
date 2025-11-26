@@ -23,7 +23,10 @@ async function seed() {
                 address: 'Carrer de Villarroel, 170',
                 city: 'Barcelona',
                 postalCode: '08036',
-                coordinates: { lat: 41.3886, lng: 2.1550 },
+                coordinates: {
+                    type: 'Point',
+                    coordinates: [2.1550, 41.3886]  // [lng, lat]
+                },
                 type: 'fix',
                 openNow: true,
                 schedule: [
@@ -44,7 +47,10 @@ async function seed() {
                 address: 'Carrer de Sant Quintí, 89',
                 city: 'Barcelona',
                 postalCode: '08041',
-                coordinates: { lat: 41.4131, lng: 2.1760 },
+                coordinates: {
+                    type: 'Point',
+                    coordinates: [2.1760, 41.4131]  // [lng, lat]
+                },
                 type: 'fix',
                 openNow: true,
                 schedule: [
@@ -65,7 +71,10 @@ async function seed() {
                 address: 'Plaça de Catalunya',
                 city: 'Barcelona',
                 postalCode: '08002',
-                coordinates: { lat: 41.3874, lng: 2.1704 },
+                coordinates: {
+                    type: 'Point',
+                    coordinates: [2.1704, 41.3874]  // [lng, lat]
+                },
                 type: 'mobile',
                 openNow: true,
                 schedule: [
@@ -86,7 +95,10 @@ async function seed() {
                 address: 'Passeig de la Vall d\'Hebron, 119',
                 city: 'Barcelona',
                 postalCode: '08035',
-                coordinates: { lat: 41.4275, lng: 2.1434 },
+                coordinates: {
+                    type: 'Point',
+                    coordinates: [2.1434, 41.4275]  // [lng, lat]
+                },
                 type: 'fix',
                 openNow: true,
                 schedule: [

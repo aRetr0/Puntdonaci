@@ -13,8 +13,8 @@ export interface IDonationCenter extends Document {
   city: string;
   postalCode: string;
   coordinates: {
-    lat: number;
-    lng: number;
+    type: 'Point';
+    coordinates: [number, number]; // [longitude, latitude]
   };
   type: 'fix' | 'mobile';
   openNow: boolean;
@@ -76,18 +76,24 @@ const DonationCenterSchema = new Schema<IDonationCenter>(
       trim: true,
     },
     coordinates: {
-      lat: {
-        type: Number,
+      type: {
+        type: String,
+        enum: ['Point'],
         required: true,
-        min: -90,
-        max: 90,
+        default: 'Point'
       },
-      lng: {
-        type: Number,
+      coordinates: {
+        type: [Number],
         required: true,
-        min: -180,
-        max: 180,
-      },
+        validate: {
+          validator: function(value: number[]) {
+            return value.length === 2 &&
+                   value[0] >= -180 && value[0] <= 180 &&  // longitude
+                   value[1] >= -90 && value[1] <= 90;       // latitude
+          },
+          message: 'Coordinates must be [longitude, latitude] with valid ranges'
+        }
+      }
     },
     type: {
       type: String,

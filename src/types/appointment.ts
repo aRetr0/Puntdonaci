@@ -22,7 +22,8 @@ export interface AppointmentWithDetails extends Appointment {
 }
 
 export interface DonationCenter {
-  id: string;
+  id?: string;
+  _id?: string;
   name: string;
   address: string;
   city: string;

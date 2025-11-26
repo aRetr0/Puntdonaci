@@ -11,6 +11,25 @@ import type {
 } from '@/types';
 
 /**
+ * Transform GeoJSON coordinates to simple lat/lng format for frontend
+ */
+function transformDonationCenter(center: any): DonationCenter {
+  // Handle both old format (backward compatibility) and new GeoJSON format
+  if (center.coordinates?.type === 'Point') {
+    // New GeoJSON format
+    return {
+      ...center,
+      coordinates: {
+        lat: center.coordinates.coordinates[1],  // latitude is second
+        lng: center.coordinates.coordinates[0]   // longitude is first
+      }
+    };
+  }
+  // Old format - pass through
+  return center;
+}
+
+/**
  * Appointments API endpoints
  */
 export const appointmentsApi = {
@@ -73,9 +92,9 @@ export const appointmentsApi = {
    * Get all donation centers
    */
   async getDonationCenters(): Promise<DonationCenter[]> {
-    const response = await apiClient.get<DonationCenter[]>('/donation-centers');
+    const response = await apiClient.get<any[]>('/donation-centers');
     if (response.success && response.data) {
-      return response.data;
+      return response.data.map(transformDonationCenter);
     }
     throw new Error(response.error || 'Failed to get donation centers');
   },
@@ -84,9 +103,9 @@ export const appointmentsApi = {
    * Get a specific donation center by ID
    */
   async getDonationCenter(id: string): Promise<DonationCenter> {
-    const response = await apiClient.get<DonationCenter>(`/donation-centers/${id}`);
+    const response = await apiClient.get<any>(`/donation-centers/${id}`);
     if (response.success && response.data) {
-      return response.data;
+      return transformDonationCenter(response.data);
     }
     throw new Error(response.error || 'Failed to get donation center');
   },
@@ -95,13 +114,13 @@ export const appointmentsApi = {
    * Get donation centers near a location
    */
   async getNearbyDonationCenters(lat: number, lng: number, radius = 10000): Promise<DonationCenter[]> {
-    const response = await apiClient.get<DonationCenter[]>('/donation-centers/nearby', {
+    const response = await apiClient.get<any[]>('/donation-centers/nearby', {
       lat,
       lng,
       radius,
     });
     if (response.success && response.data) {
-      return response.data;
+      return response.data.map(transformDonationCenter);
     }
     throw new Error(response.error || 'Failed to get nearby donation centers');
   },

@@ -8,7 +8,11 @@
     "build": "tsc || true",
     "start": "node dist/index.js",
     "type-check": "tsc --noEmit",
-    "seed": "tsx src/scripts/seed.ts"
+    "seed": "tsx src/scripts/seed.ts",
+    "seed:real": "tsx src/scripts/seedRealData.ts",
+    "investigate": "tsx src/scripts/investigateData.ts",
+    "migrate:geojson": "tsx src/scripts/migrateToGeoJSON.ts",
+    "verify:geojson": "tsx src/scripts/verifyGeoJSON.ts"
   },
   "keywords": [
     "blood-donation",
@@ -19,6 +23,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "axios": "^1.13.2",
     "bcryptjs": "^3.0.3",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
