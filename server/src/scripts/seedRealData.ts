@@ -1,7 +1,9 @@
 import mongoose from 'mongoose';
 import axios from 'axios';
 import { DonationCenter } from '../models/DonationCenter';
+import { Campaign } from '../models/Campaign';
 import { env } from '../config/env';
+import { getCampaignData } from './data/campaignData';
 
 // Overpass API URL
 const OVERPASS_API_URL = 'https://overpass-api.de/api/interpreter';
@@ -158,9 +160,25 @@ async function seedRealData() {
         console.log('Clearing existing Donation Centers...');
         await DonationCenter.deleteMany({});
 
-        // Insert new data
-        console.log('Inserting new data...');
-        await DonationCenter.create([...realCenters, ...manualCenters]);
+        // Insert donation centers and capture IDs
+        console.log('Inserting donation centers...');
+        const insertedCenters = await DonationCenter.create([...realCenters, ...manualCenters]);
+        const centerIds = insertedCenters.map(c => c._id.toString());
+        console.log(`✓ Seeded ${insertedCenters.length} donation centers`);
+
+        // Seed campaigns
+        try {
+            console.log('Clearing existing Campaigns...');
+            await Campaign.deleteMany({});
+
+            console.log('Seeding Campaigns...');
+            const campaignData = getCampaignData(centerIds);
+            await Campaign.create(campaignData);
+            console.log(`✓ Seeded ${campaignData.length} campaigns`);
+        } catch (error) {
+            console.error('Error seeding campaigns:', error);
+            // Don't exit - campaigns are not critical for app startup
+        }
 
         console.log('Database seeded successfully with REAL data!');
         process.exit(0);

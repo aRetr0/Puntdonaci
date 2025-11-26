@@ -16,7 +16,10 @@
       "Bash(npm --version:*)",
       "Bash(npm run investigate:*)",
       "Bash(npm run seed:real:*)",
-      "Bash(npm run verify:geojson:*)"
+      "Bash(npm run verify:geojson:*)",
+      "Bash(docker compose:*)",
+      "Bash(docker logs:*)",
+      "Bash(docker exec:*)"
     ],
     "deny": [],
     "ask": []
