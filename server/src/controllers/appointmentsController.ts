@@ -158,7 +158,7 @@ export async function cancelAppointment(
 
     await appointment.save();
 
-    sendSuccess(res, appointment, 'Appointment cancelled');
+    sendSuccess(res, appointment, 200, 'Appointment cancelled');
   } catch (error) {
     next(error);
   }
@@ -173,7 +173,7 @@ export async function checkAvailability(
   next: NextFunction
 ): Promise<void> {
   try {
-    const { donationCenterId, donationType, date } = req.query;
+    const { donationCenterId, date } = req.query;
 
     if (!donationCenterId || !date) {
       throw new ValidationError('Missing required parameters');

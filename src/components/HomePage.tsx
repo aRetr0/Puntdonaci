@@ -19,7 +19,7 @@ export function HomePage() {
   const startY = useRef(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  const campaigns = (campaignsResponse as any)?.data || [];
+  const campaigns = campaignsResponse || [];
 
   const donationTypes = [
     {
@@ -286,13 +286,13 @@ export function HomePage() {
 
       {/* Campaign Detail Modal */}
       {selectedCampaign && selectedCampaignData && (
-        <div 
+        <div
           className="fixed inset-0 glass-overlay z-50"
           onClick={() => setSelectedCampaign(null)}
         >
-          <div 
+          <div
             className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-2xl max-w-2xl mx-auto"
-            style={{ 
+            style={{
               height: '80%',
               transform: `translateY(${dragY}px)`,
               transition: isDragging ? 'none' : 'transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)'
@@ -310,7 +310,7 @@ export function HomePage() {
             <div ref={scrollContainerRef} className="h-full overflow-y-auto pb-6">
               <div className="sticky top-0 bg-white/95 backdrop-blur-xl border-b border-gray-100 p-4 flex items-center justify-between z-10">
                 <h3>{selectedCampaignData.title}</h3>
-                <button 
+                <button
                   onClick={() => setSelectedCampaign(null)}
                   className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
                 >
@@ -333,8 +333,8 @@ export function HomePage() {
                 </div>
 
                 <div>
-                  <p className="text-gray-600 mb-4">{selectedCampaignData.longDescription}</p>
-                  
+                  <p className="text-gray-600 mb-4">{selectedCampaignData.description}</p>
+
                   <div className="bg-gray-50 rounded-xl p-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-gray-600">Objectiu</span>
@@ -364,7 +364,7 @@ export function HomePage() {
                   </div>
                 </div>
 
-                {selectedCampaignData.bonusTokens > 0 && (
+                {(selectedCampaignData.bonusTokens || 0) > 0 && (
                   <div className="bg-green-50 border border-green-200 rounded-xl p-4">
                     <div className="flex items-center gap-2 mb-2">
                       <Coins className="w-5 h-5 text-green-700" />
@@ -393,13 +393,13 @@ export function HomePage() {
 
       {/* Donation Type Detail Modal */}
       {selectedDonationType !== null && selectedDonationData && (
-        <div 
+        <div
           className="fixed inset-0 glass-overlay z-50"
           onClick={() => setSelectedDonationType(null)}
         >
-          <div 
+          <div
             className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-2xl max-w-2xl mx-auto"
-            style={{ 
+            style={{
               height: '80%',
               transform: `translateY(${dragY}px)`,
               transition: isDragging ? 'none' : 'transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)'
@@ -417,7 +417,7 @@ export function HomePage() {
             <div ref={scrollContainerRef} className="h-full overflow-y-auto pb-6">
               <div className="sticky top-0 bg-white/95 backdrop-blur-xl border-b border-gray-100 p-4 flex items-center justify-between z-10">
                 <h3>{selectedDonationData.type}</h3>
-                <button 
+                <button
                   onClick={() => setSelectedDonationType(null)}
                   className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
                 >
@@ -426,7 +426,7 @@ export function HomePage() {
               </div>
 
               <div className="p-6 space-y-6">
-                <div 
+                <div
                   className="rounded-2xl p-8 text-center"
                   style={{ backgroundColor: `${selectedDonationData.color}15` }}
                 >

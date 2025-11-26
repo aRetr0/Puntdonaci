@@ -1,3 +1,5 @@
+import { Donation } from './donation';
+
 export type BloodType = 'A+' | 'A-' | 'B+' | 'B-' | 'AB+' | 'AB-' | 'O+' | 'O-';
 
 export type Gender = 'home' | 'dona' | 'altre' | 'no-especificar';

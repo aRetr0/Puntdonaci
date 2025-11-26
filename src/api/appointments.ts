@@ -8,7 +8,6 @@ import type {
   AvailabilityResponse,
   DonationCenter,
   DonationTypeInfo,
-  ApiResponse,
 } from '@/types';
 
 /**
@@ -63,7 +62,7 @@ export const appointmentsApi = {
    * Check availability for a specific donation center and date
    */
   async checkAvailability(query: AvailabilityQuery): Promise<AvailabilityResponse> {
-    const response = await apiClient.get<AvailabilityResponse>('/appointments/availability', query);
+    const response = await apiClient.get<AvailabilityResponse>('/appointments/availability', query as unknown as Record<string, unknown>);
     if (response.success && response.data) {
       return response.data;
     }

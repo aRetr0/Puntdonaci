@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Mail, Lock, User, Phone, Calendar, Droplet, Check, ChevronRight, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import { useAuthStore } from '@/stores/authStore';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
-import { Droplet, Mail, Lock, User, Phone, Calendar, Heart, Check, ChevronRight, Loader2 } from 'lucide-react';
-import { useAuthStore } from '@/stores/authStore';
 
 type ViewType = 'welcome' | 'login' | 'signup' | 'signupStep2';
 
@@ -60,8 +60,8 @@ export function LoginPage() {
       await login(loginData.email, loginData.password);
       toast.success('Benvingut de nou!');
       navigate('/onboarding');
-    } catch (error: any) {
-      const message = error?.error || 'Error al iniciar sessió';
+    } catch (error) {
+      const message = (error as { error?: string })?.error || 'Error al iniciar sessió';
       setErrors([message]);
       toast.error(message);
     }
@@ -128,13 +128,13 @@ export function LoginPage() {
         phone: signupData.phone,
         birthdate: signupData.birthdate,
         gender: signupData.gender as 'home' | 'dona' | 'altre' | 'no-especificar',
-        bloodType: signupData.bloodType as any,
+        bloodType: signupData.bloodType,
         hasDonatedBefore: signupData.hasDonatedBefore === 'yes'
       });
       toast.success('Compte creat correctament!');
       navigate('/onboarding');
-    } catch (error: any) {
-      const message = error?.error || 'Error al crear el compte';
+    } catch (error) {
+      const message = (error as { error?: string })?.error || 'Error al crear el compte';
       setErrors([message]);
       toast.error(message);
     }
@@ -254,7 +254,7 @@ export function LoginPage() {
                       type="email"
                       placeholder="nom@exemple.com"
                       value={loginData.email}
-                      onChange={(e) => setLoginData({...loginData, email: e.target.value})}
+                      onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
                       className="pl-12 h-14 rounded-2xl border-2"
                     />
                   </div>
@@ -269,7 +269,7 @@ export function LoginPage() {
                       type="password"
                       placeholder="••••••••"
                       value={loginData.password}
-                      onChange={(e) => setLoginData({...loginData, password: e.target.value})}
+                      onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
                       className="pl-12 h-14 rounded-2xl border-2"
                     />
                   </div>
@@ -338,7 +338,7 @@ export function LoginPage() {
                         type="email"
                         placeholder="nom@exemple.com"
                         value={loginData.email}
-                        onChange={(e) => setLoginData({...loginData, email: e.target.value})}
+                        onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
                         className="pl-12 h-14 rounded-2xl border-2"
                       />
                     </div>
@@ -353,7 +353,7 @@ export function LoginPage() {
                         type="password"
                         placeholder="••••••••"
                         value={loginData.password}
-                        onChange={(e) => setLoginData({...loginData, password: e.target.value})}
+                        onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
                         className="pl-12 h-14 rounded-2xl border-2"
                       />
                     </div>
@@ -434,7 +434,7 @@ export function LoginPage() {
                       type="text"
                       placeholder="Joan Garcia"
                       value={signupData.name}
-                      onChange={(e) => setSignupData({...signupData, name: e.target.value})}
+                      onChange={(e) => setSignupData({ ...signupData, name: e.target.value })}
                       className="pl-12 h-14 rounded-2xl border-2"
                     />
                   </div>
@@ -449,7 +449,7 @@ export function LoginPage() {
                       type="email"
                       placeholder="nom@exemple.com"
                       value={signupData.email}
-                      onChange={(e) => setSignupData({...signupData, email: e.target.value})}
+                      onChange={(e) => setSignupData({ ...signupData, email: e.target.value })}
                       className="pl-12 h-14 rounded-2xl border-2"
                     />
                   </div>
@@ -464,7 +464,7 @@ export function LoginPage() {
                       type="password"
                       placeholder="Almenys 6 caràcters"
                       value={signupData.password}
-                      onChange={(e) => setSignupData({...signupData, password: e.target.value})}
+                      onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
                       className="pl-12 h-14 rounded-2xl border-2"
                     />
                   </div>
@@ -479,7 +479,7 @@ export function LoginPage() {
                       type="password"
                       placeholder="Repeteix la contrasenya"
                       value={signupData.confirmPassword}
-                      onChange={(e) => setSignupData({...signupData, confirmPassword: e.target.value})}
+                      onChange={(e) => setSignupData({ ...signupData, confirmPassword: e.target.value })}
                       className="pl-12 h-14 rounded-2xl border-2"
                     />
                   </div>
@@ -541,7 +541,7 @@ export function LoginPage() {
                         type="text"
                         placeholder="Joan Garcia"
                         value={signupData.name}
-                        onChange={(e) => setSignupData({...signupData, name: e.target.value})}
+                        onChange={(e) => setSignupData({ ...signupData, name: e.target.value })}
                         className="pl-12 h-14 rounded-2xl border-2"
                       />
                     </div>
@@ -556,7 +556,7 @@ export function LoginPage() {
                         type="email"
                         placeholder="nom@exemple.com"
                         value={signupData.email}
-                        onChange={(e) => setSignupData({...signupData, email: e.target.value})}
+                        onChange={(e) => setSignupData({ ...signupData, email: e.target.value })}
                         className="pl-12 h-14 rounded-2xl border-2"
                       />
                     </div>
@@ -571,7 +571,7 @@ export function LoginPage() {
                         type="password"
                         placeholder="Almenys 6 caràcters"
                         value={signupData.password}
-                        onChange={(e) => setSignupData({...signupData, password: e.target.value})}
+                        onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
                         className="pl-12 h-14 rounded-2xl border-2"
                       />
                     </div>
@@ -586,7 +586,7 @@ export function LoginPage() {
                         type="password"
                         placeholder="Repeteix la contrasenya"
                         value={signupData.confirmPassword}
-                        onChange={(e) => setSignupData({...signupData, confirmPassword: e.target.value})}
+                        onChange={(e) => setSignupData({ ...signupData, confirmPassword: e.target.value })}
                         className="pl-12 h-14 rounded-2xl border-2"
                       />
                     </div>
@@ -653,14 +653,14 @@ export function LoginPage() {
               <div className="space-y-4 mb-6">
                 <div>
                   <Label htmlFor="phone">Telèfon</Label>
-                  <div className="relative mt-2">
+                  <div className="relative mt-4">
                     <Phone className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <Input
                       id="phone"
                       type="tel"
                       placeholder="612345678"
                       value={signupData.phone}
-                      onChange={(e) => setSignupData({...signupData, phone: e.target.value})}
+                      onChange={(e) => setSignupData({ ...signupData, phone: e.target.value })}
                       className="pl-12 h-14 rounded-2xl border-2"
                     />
                   </div>
@@ -668,13 +668,13 @@ export function LoginPage() {
 
                 <div>
                   <Label htmlFor="birthdate">Data de naixement</Label>
-                  <div className="relative mt-2">
+                  <div className="relative mt-4">
                     <Calendar className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <Input
                       id="birthdate"
                       type="date"
                       value={signupData.birthdate}
-                      onChange={(e) => setSignupData({...signupData, birthdate: e.target.value})}
+                      onChange={(e) => setSignupData({ ...signupData, birthdate: e.target.value })}
                       className="pl-12 h-14 rounded-2xl border-2"
                     />
                   </div>
@@ -685,8 +685,8 @@ export function LoginPage() {
                   <select
                     id="gender"
                     value={signupData.gender}
-                    onChange={(e) => setSignupData({...signupData, gender: e.target.value})}
-                    className="w-full h-14 rounded-2xl border-2 px-4 bg-white"
+                    onChange={(e) => setSignupData({ ...signupData, gender: e.target.value })}
+                    className="w-full h-14 rounded-2xl border-2 px-4 bg-white mt-4"
                   >
                     <option value="">Selecciona una opció</option>
                     <option value="home">Home</option>
@@ -701,8 +701,8 @@ export function LoginPage() {
                   <select
                     id="bloodType"
                     value={signupData.bloodType}
-                    onChange={(e) => setSignupData({...signupData, bloodType: e.target.value})}
-                    className="w-full h-14 rounded-2xl border-2 px-4 bg-white"
+                    onChange={(e) => setSignupData({ ...signupData, bloodType: e.target.value })}
+                    className="w-full h-14 rounded-2xl border-2 px-4 bg-white mt-4"
                   >
                     <option value="">Selecciona el teu grup</option>
                     {bloodTypes.map(type => (
@@ -713,26 +713,24 @@ export function LoginPage() {
 
                 <div>
                   <Label>Has donat sang abans?</Label>
-                  <div className="flex gap-4 mt-2">
+                  <div className="flex gap-4 mt-4">
                     <button
                       type="button"
-                      onClick={() => setSignupData({...signupData, hasDonatedBefore: 'yes'})}
-                      className={`flex-1 h-14 rounded-2xl border-2 transition-all ${
-                        signupData.hasDonatedBefore === 'yes'
-                          ? 'bg-[#E30613] border-[#E30613] text-white'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
+                      onClick={() => setSignupData({ ...signupData, hasDonatedBefore: 'yes' })}
+                      className={`flex-1 h-14 rounded-2xl border-2 transition-all ${signupData.hasDonatedBefore === 'yes'
+                        ? 'bg-[#E30613] border-[#E30613] text-white'
+                        : 'border-gray-200 hover:border-gray-300'
+                        }`}
                     >
                       Sí
                     </button>
                     <button
                       type="button"
-                      onClick={() => setSignupData({...signupData, hasDonatedBefore: 'no'})}
-                      className={`flex-1 h-14 rounded-2xl border-2 transition-all ${
-                        signupData.hasDonatedBefore === 'no'
-                          ? 'bg-[#E30613] border-[#E30613] text-white'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
+                      onClick={() => setSignupData({ ...signupData, hasDonatedBefore: 'no' })}
+                      className={`flex-1 h-14 rounded-2xl border-2 transition-all ${signupData.hasDonatedBefore === 'no'
+                        ? 'bg-[#E30613] border-[#E30613] text-white'
+                        : 'border-gray-200 hover:border-gray-300'
+                        }`}
                     >
                       No
                     </button>
@@ -798,14 +796,14 @@ export function LoginPage() {
                 <div className="space-y-4 mb-6">
                   <div>
                     <Label htmlFor="phone-desktop">Telèfon</Label>
-                    <div className="relative mt-2">
+                    <div className="relative mt-4">
                       <Phone className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                       <Input
                         id="phone-desktop"
                         type="tel"
                         placeholder="612345678"
                         value={signupData.phone}
-                        onChange={(e) => setSignupData({...signupData, phone: e.target.value})}
+                        onChange={(e) => setSignupData({ ...signupData, phone: e.target.value })}
                         className="pl-12 h-14 rounded-2xl border-2"
                       />
                     </div>
@@ -813,13 +811,13 @@ export function LoginPage() {
 
                   <div>
                     <Label htmlFor="birthdate-desktop">Data de naixement</Label>
-                    <div className="relative mt-2">
+                    <div className="relative mt-4">
                       <Calendar className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                       <Input
                         id="birthdate-desktop"
                         type="date"
                         value={signupData.birthdate}
-                        onChange={(e) => setSignupData({...signupData, birthdate: e.target.value})}
+                        onChange={(e) => setSignupData({ ...signupData, birthdate: e.target.value })}
                         className="pl-12 h-14 rounded-2xl border-2"
                       />
                     </div>
@@ -830,8 +828,8 @@ export function LoginPage() {
                     <select
                       id="gender-desktop"
                       value={signupData.gender}
-                      onChange={(e) => setSignupData({...signupData, gender: e.target.value})}
-                      className="w-full h-14 rounded-2xl border-2 px-4 bg-white"
+                      onChange={(e) => setSignupData({ ...signupData, gender: e.target.value })}
+                      className="w-full h-14 rounded-2xl border-2 px-4 bg-white mt-4"
                     >
                       <option value="">Selecciona una opció</option>
                       <option value="home">Home</option>
@@ -846,8 +844,8 @@ export function LoginPage() {
                     <select
                       id="bloodType-desktop"
                       value={signupData.bloodType}
-                      onChange={(e) => setSignupData({...signupData, bloodType: e.target.value})}
-                      className="w-full h-14 rounded-2xl border-2 px-4 bg-white"
+                      onChange={(e) => setSignupData({ ...signupData, bloodType: e.target.value })}
+                      className="w-full h-14 rounded-2xl border-2 px-4 bg-white mt-4"
                     >
                       <option value="">Selecciona el teu grup</option>
                       {bloodTypes.map(type => (
@@ -858,26 +856,24 @@ export function LoginPage() {
 
                   <div>
                     <Label>Has donat sang abans?</Label>
-                    <div className="flex gap-4 mt-2">
+                    <div className="flex gap-4 mt-4">
                       <button
                         type="button"
-                        onClick={() => setSignupData({...signupData, hasDonatedBefore: 'yes'})}
-                        className={`flex-1 h-14 rounded-2xl border-2 transition-all ${
-                          signupData.hasDonatedBefore === 'yes'
-                            ? 'bg-[#E30613] border-[#E30613] text-white'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
+                        onClick={() => setSignupData({ ...signupData, hasDonatedBefore: 'yes' })}
+                        className={`flex-1 h-14 rounded-2xl border-2 transition-all ${signupData.hasDonatedBefore === 'yes'
+                          ? 'bg-[#E30613] border-[#E30613] text-white'
+                          : 'border-gray-200 hover:border-gray-300'
+                          }`}
                       >
                         Sí
                       </button>
                       <button
                         type="button"
-                        onClick={() => setSignupData({...signupData, hasDonatedBefore: 'no'})}
-                        className={`flex-1 h-14 rounded-2xl border-2 transition-all ${
-                          signupData.hasDonatedBefore === 'no'
-                            ? 'bg-[#E30613] border-[#E30613] text-white'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
+                        onClick={() => setSignupData({ ...signupData, hasDonatedBefore: 'no' })}
+                        className={`flex-1 h-14 rounded-2xl border-2 transition-all ${signupData.hasDonatedBefore === 'no'
+                          ? 'bg-[#E30613] border-[#E30613] text-white'
+                          : 'border-gray-200 hover:border-gray-300'
+                          }`}
                       >
                         No
                       </button>

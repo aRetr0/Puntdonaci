@@ -1,13 +1,46 @@
 import { useState } from 'react';
-import { Heart, Calendar, Award, Settings, ChevronRight, Bell, Lock, HelpCircle, User, Share2, Instagram, Twitter, MessageCircle, Copy, Loader2 } from 'lucide-react';
-import { Badge } from './ui/badge';
-import { Button } from './ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog';
-import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import {
+  User, Award, Heart, Calendar, Settings, ChevronRight,
+  Bell, Lock, HelpCircle, Loader2, Instagram, Twitter,
+  MessageCircle, Copy
+} from 'lucide-react';
+import { toast } from 'sonner';
 import { useAuthStore } from '@/stores/authStore';
 import { useDonations, useDonationAnalytics } from '@/hooks';
+import { Button } from './ui/button';
+import { Badge } from './ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
+import { Donation, AnalyticsData } from '@/types';
+
+interface TooltipPayload {
+  name: string;
+  value: number;
+  color: string;
+}
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: TooltipPayload[];
+  label?: string;
+}
+
+const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-white p-3 border border-gray-100 shadow-lg rounded-xl text-xs">
+        <p className="text-xs text-gray-500 mb-2">{label}</p>
+        {payload.map((entry, index) => (
+          <p key={index} className="text-sm font-medium" style={{ color: entry.color }}>
+            <span className="text-gray-600">{entry.name}:</span> {entry.value}
+          </p>
+        ))}
+      </div>
+    );
+  }
+  return null;
+};
 
 export function PerfilPage() {
   const navigate = useNavigate();
@@ -24,8 +57,13 @@ export function PerfilPage() {
   const [showShareDialog, setShowShareDialog] = useState(false);
 
   const tokens = user?.tokens || 0;
-  const donationHistory = (donationsResponse as any)?.data || [];
-  const analyticsData = (analyticsResponse as any)?.data || {};
+  const donationHistory = donationsResponse?.donations || [];
+  const analyticsData = analyticsResponse || {} as AnalyticsData;
+
+  const totalDonations = user?.donationCount || 0;
+  const livesSaved = Math.floor(totalDonations * 3);
+  const donationTrendData = analyticsData.donationEvolution || [];
+  const monthlyTokensData = analyticsData.monthlyTokens || [];
 
   const achievements = [
     { id: 1, name: 'Primera Donació', icon: '🏆', unlocked: user?.donationCount && user.donationCount >= 1 },
@@ -33,34 +71,6 @@ export function PerfilPage() {
     { id: 3, name: 'Donant Regular', icon: '💎', unlocked: user?.donationCount && user.donationCount >= 3 },
     { id: 4, name: 'Heroi de Platí', icon: '👑', unlocked: user?.donationCount && user.donationCount >= 10 }
   ];
-
-  const totalDonations = user?.donationCount || 0;
-  const livesSaved = user?.livesSaved || 0;
-
-  // Get analytics data from API
-  const donationTrendData = analyticsData?.monthlyDonations || [];
-  const monthlyTokensData = analyticsData?.monthlyTokens || [];
-  const donationTypeData = analyticsData?.donationsByType?.map((item: any) => ({
-    name: item._id || item.donationType,
-    value: item.count,
-    color: '#E30613'
-  })) || [];
-
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-white/95 backdrop-blur-md px-4 py-3 rounded-xl shadow-xl border border-gray-100">
-          <p className="text-xs text-gray-500 mb-2">{label}</p>
-          {payload.map((entry: any, index: number) => (
-            <p key={index} className="text-sm font-medium" style={{ color: entry.color }}>
-              <span className="text-gray-600">{entry.name}:</span> {entry.value}
-            </p>
-          ))}
-        </div>
-      );
-    }
-    return null;
-  };
 
   if (activeSection === 'history') {
     return (
@@ -82,12 +92,12 @@ export function PerfilPage() {
               <p>Encara no tens donacions registrades</p>
             </div>
           ) : (
-            donationHistory.map((donation: any, index: number) => (
-              <div key={donation._id} className="bg-white rounded-2xl p-4 shadow-sm">
+            donationHistory.map((donation: Donation, index: number) => (
+              <div key={donation.id} className="bg-white rounded-2xl p-4 shadow-sm">
                 <div className="flex items-start justify-between mb-3">
                   <div>
                     <h4 className="text-sm mb-1">{donation.donationType || 'Donació de sang'}</h4>
-                    <p className="text-xs text-gray-600">{donation.centerName || 'Centre de donació'}</p>
+                    <p className="text-xs text-gray-600">{donation.donationCenterName || 'Centre de donació'}</p>
                   </div>
                   <Badge className="bg-green-100 text-green-700 border-0">
                     +{donation.tokensEarned || 0} tokens
@@ -139,16 +149,14 @@ export function PerfilPage() {
                   <Bell className="w-5 h-5 text-gray-600" />
                   <span className="text-sm">Recordatoris de cita</span>
                 </div>
-                <button 
+                <button
                   type="button"
-                  className={`w-12 h-6 rounded-full relative transition-all ${
-                    notifications.appointments ? 'bg-[#E30613]' : 'bg-gray-300'
-                  }`}
+                  className={`w-12 h-6 rounded-full relative transition-all ${notifications.appointments ? 'bg-[#E30613]' : 'bg-gray-300'
+                    }`}
                   onClick={() => setNotifications({ ...notifications, appointments: !notifications.appointments })}
                 >
-                  <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${
-                    notifications.appointments ? 'right-1' : 'left-1'
-                  }`} />
+                  <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${notifications.appointments ? 'right-1' : 'left-1'
+                    }`} />
                 </button>
               </div>
               <div className="p-4 flex items-center justify-between">
@@ -156,16 +164,14 @@ export function PerfilPage() {
                   <Bell className="w-5 h-5 text-gray-600" />
                   <span className="text-sm">Campanyes urgents</span>
                 </div>
-                <button 
+                <button
                   type="button"
-                  className={`w-12 h-6 rounded-full relative transition-all ${
-                    notifications.urgent ? 'bg-[#E30613]' : 'bg-gray-300'
-                  }`}
+                  className={`w-12 h-6 rounded-full relative transition-all ${notifications.urgent ? 'bg-[#E30613]' : 'bg-gray-300'
+                    }`}
                   onClick={() => setNotifications({ ...notifications, urgent: !notifications.urgent })}
                 >
-                  <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${
-                    notifications.urgent ? 'right-1' : 'left-1'
-                  }`} />
+                  <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${notifications.urgent ? 'right-1' : 'left-1'
+                    }`} />
                 </button>
               </div>
               <div className="p-4 flex items-center justify-between">
@@ -173,16 +179,14 @@ export function PerfilPage() {
                   <Bell className="w-5 h-5 text-gray-600" />
                   <span className="text-sm">Noves recompenses</span>
                 </div>
-                <button 
+                <button
                   type="button"
-                  className={`w-12 h-6 rounded-full relative transition-all ${
-                    notifications.rewards ? 'bg-[#E30613]' : 'bg-gray-300'
-                  }`}
+                  className={`w-12 h-6 rounded-full relative transition-all ${notifications.rewards ? 'bg-[#E30613]' : 'bg-gray-300'
+                    }`}
                   onClick={() => setNotifications({ ...notifications, rewards: !notifications.rewards })}
                 >
-                  <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${
-                    notifications.rewards ? 'right-1' : 'left-1'
-                  }`} />
+                  <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${notifications.rewards ? 'right-1' : 'left-1'
+                    }`} />
                 </button>
               </div>
             </div>
@@ -271,275 +275,172 @@ export function PerfilPage() {
       <div className="p-4 space-y-5 pb-24">
         {/* Quick Actions */}
         <section>
-          <div className="bg-white rounded-2xl divide-y divide-gray-100 shadow-sm overflow-hidden">
-            <button 
+          <div className="grid grid-cols-2 gap-3">
+            <button
               onClick={() => setActiveSection('history')}
-              className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+              className="bg-white p-4 rounded-2xl shadow-sm hover:shadow-md transition-all text-left"
             >
-              <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center mb-3">
                 <Calendar className="w-5 h-5 text-[#E30613]" />
-                <span className="text-sm">Historial de donacions</span>
               </div>
-              <ChevronRight className="w-5 h-5 text-gray-400" />
+              <h3 className="font-medium text-sm">Historial</h3>
+              <p className="text-xs text-gray-500">Veure donacions</p>
             </button>
-            <button className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
-              <div className="flex items-center gap-3">
-                <Award className="w-5 h-5 text-[#E30613]" />
-                <span className="text-sm">Resultats d'analítiques</span>
-              </div>
-              <Badge className="bg-green-100 text-green-700 border-0">Disponible</Badge>
-            </button>
-            <button 
+            <button
               onClick={() => setShowShareDialog(true)}
-              className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+              className="bg-white p-4 rounded-2xl shadow-sm hover:shadow-md transition-all text-left"
             >
-              <div className="flex items-center gap-3">
-                <Heart className="w-5 h-5 text-[#E30613]" />
-                <span className="text-sm">Compartir el meu impacte</span>
+              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mb-3">
+                <User className="w-5 h-5 text-blue-600" />
               </div>
-              <ChevronRight className="w-5 h-5 text-gray-400" />
-            </button>
-            <button 
-              onClick={() => setActiveSection('settings')}
-              className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <Settings className="w-5 h-5 text-[#E30613]" />
-                <span className="text-sm">Configuració</span>
-              </div>
-              <ChevronRight className="w-5 h-5 text-gray-400" />
+              <h3 className="font-medium text-sm">Convidar amics</h3>
+              <p className="text-xs text-gray-500">Guanya tokens</p>
             </button>
           </div>
         </section>
 
+        {/* Analytics Charts */}
+        <section>
+          <h3 className="font-medium mb-3 px-1">Estadístiques</h3>
+          {loadingAnalytics ? (
+            <div className="flex items-center justify-center p-8 bg-white rounded-2xl shadow-sm">
+              <Loader2 className="w-8 h-8 animate-spin text-[#E30613]" />
+            </div>
+          ) : (
+            <div className="bg-white p-4 rounded-2xl shadow-sm space-y-6">
+              <div>
+                <h4 className="text-xs text-gray-500 mb-4 uppercase tracking-wider">Evolució de donacions</h4>
+                <div className="h-48">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={donationTrendData}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                      <XAxis
+                        dataKey="month"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 10, fill: '#9CA3AF' }}
+                      />
+                      <YAxis
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 10, fill: '#9CA3AF' }}
+                      />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Line
+                        type="monotone"
+                        dataKey="donations"
+                        stroke="#E30613"
+                        strokeWidth={3}
+                        dot={{ fill: '#E30613', strokeWidth: 2, r: 4, stroke: '#fff' }}
+                        activeDot={{ r: 6, strokeWidth: 0 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="text-xs text-gray-500 mb-4 uppercase tracking-wider">Tokens guanyats</h4>
+                <div className="h-48">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={monthlyTokensData}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                      <XAxis
+                        dataKey="month"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 10, fill: '#9CA3AF' }}
+                      />
+                      <YAxis
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 10, fill: '#9CA3AF' }}
+                      />
+                      <Tooltip
+                        content={<CustomTooltip />}
+                        cursor={{ fill: 'rgba(227, 6, 19, 0.1)' }}
+                      />
+                      <Bar
+                        dataKey="tokens"
+                        fill="#E30613"
+                        radius={[4, 4, 0, 0]}
+                        barSize={20}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
+          )}
+        </section>
+
         {/* Achievements */}
         <section>
-          <h3 className="mb-3 px-1">Els teus assoliments</h3>
+          <h3 className="font-medium mb-3 px-1">Assoliments</h3>
           <div className="grid grid-cols-2 gap-3">
             {achievements.map((achievement) => (
               <div
                 key={achievement.id}
-                className={`rounded-2xl p-4 text-center transition-all ${
-                  achievement.unlocked
-                    ? 'bg-gradient-to-br from-yellow-50 to-orange-50 border-2 border-yellow-200'
-                    : 'bg-white opacity-50 border border-gray-200'
-                }`}
+                className={`p-4 rounded-2xl border-2 transition-all ${achievement.unlocked
+                  ? 'bg-white border-[#E30613]/10 shadow-sm'
+                  : 'bg-gray-50 border-transparent opacity-60 grayscale'
+                  }`}
               >
-                <div className="text-4xl mb-2">{achievement.icon}</div>
-                <p className="text-xs">{achievement.name}</p>
+                <div className="text-3xl mb-2">{achievement.icon}</div>
+                <h4 className="text-sm font-medium mb-1">{achievement.name}</h4>
+                <p className="text-xs text-gray-500">
+                  {achievement.unlocked ? 'Desbloquejat!' : 'Bloquejat'}
+                </p>
               </div>
             ))}
           </div>
         </section>
 
-        {/* Next Donation Info */}
-        <div className="bg-blue-50 rounded-2xl p-5 border border-blue-100">
-          <h4 className="text-sm mb-3 text-blue-900">Propera donació permesa</h4>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-blue-800 mb-1 font-medium">Ara mateix!</p>
-              <p className="text-xs text-blue-700">Ja pots reservar una nova cita</p>
-            </div>
-            <Button className="bg-[#E30613] hover:bg-[#C00510] text-white rounded-xl">
-              Reservar
-            </Button>
-          </div>
-        </div>
-
-        {/* Gràfic: Evolució de Donacions */}
-        <div className="bg-white rounded-2xl p-5 shadow-sm">
-          <div className="mb-4">
-            <h4 className="text-sm text-gray-900 mb-1">Evolució de donacions</h4>
-            <p className="text-xs text-gray-500">Seguiment mensual del teu progrés</p>
-          </div>
-          {loadingAnalytics ? (
-            <div className="flex items-center justify-center h-[250px]">
-              <Loader2 className="w-8 h-8 animate-spin text-[#E30613]" />
-            </div>
-          ) : donationTrendData.length === 0 ? (
-            <div className="flex items-center justify-center h-[250px] text-gray-500 text-sm">
-              No hi ha dades disponibles
-            </div>
-          ) : (
-            <ResponsiveContainer width="100%" height={250}>
-              <LineChart data={donationTrendData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis
-                  dataKey="month"
-                  tick={{ fontSize: 12, fill: '#6B7280' }}
-                  stroke="#E5E7EB"
-                />
-                <YAxis
-                  tick={{ fontSize: 12, fill: '#6B7280' }}
-                  stroke="#E5E7EB"
-                />
-                <Tooltip content={<CustomTooltip />} />
-                <Line
-                  type="monotone"
-                  dataKey="donations"
-                  name="Donacions"
-                  stroke="#E30613"
-                  strokeWidth={3}
-                  dot={{ r: 5, fill: '#E30613' }}
-                  activeDot={{ r: 7 }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="lives"
-                  name="Vides"
-                  stroke="#10B981"
-                  strokeWidth={3}
-                  dot={{ r: 5, fill: '#10B981' }}
-                  activeDot={{ r: 7 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-
-        {/* Gràfic: Tokens Mensuals */}
-        <div className="bg-white rounded-2xl p-5 shadow-sm">
-          <div className="mb-4">
-            <h4 className="text-sm text-gray-900 mb-1">Tokens guanyats</h4>
-            <p className="text-xs text-gray-500">Recompenses mensuals acumulades</p>
-          </div>
-          {loadingAnalytics ? (
-            <div className="flex items-center justify-center h-[220px]">
-              <Loader2 className="w-8 h-8 animate-spin text-[#E30613]" />
-            </div>
-          ) : monthlyTokensData.length === 0 ? (
-            <div className="flex items-center justify-center h-[220px] text-gray-500 text-sm">
-              No hi ha dades disponibles
-            </div>
-          ) : (
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={monthlyTokensData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis
-                  dataKey="month"
-                  tick={{ fontSize: 12, fill: '#6B7280' }}
-                  stroke="#E5E7EB"
-                />
-                <YAxis
-                  tick={{ fontSize: 12, fill: '#6B7280' }}
-                  stroke="#E5E7EB"
-                />
-                <Tooltip
-                  content={<CustomTooltip />}
-                  cursor={{ fill: 'rgba(227, 6, 19, 0.1)' }}
-                />
-                <Bar
-                  dataKey="tokens"
-                  name="Tokens"
-                  fill="#E30613"
-                  radius={[8, 8, 0, 0]}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </div>
+        <Button
+          variant="ghost"
+          className="w-full text-gray-500 hover:text-gray-700 h-12"
+          onClick={() => setActiveSection('settings')}
+        >
+          <Settings className="w-4 h-4 mr-2" />
+          Més opcions
+        </Button>
       </div>
 
       {/* Share Dialog */}
       <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Comparteix el teu impacte</DialogTitle>
+            <DialogTitle>Convida amics</DialogTitle>
             <DialogDescription>
-              Inspira altres persones compartint les teves donacions de sang.
+              Comparteix el teu codi i guanya 50 tokens per cada amic que faci la seva primera donació.
             </DialogDescription>
           </DialogHeader>
-          
-          {/* Impact Preview Card */}
-          <div className="bg-gradient-to-r from-[#E30613] to-[#FF4444] rounded-2xl p-6 text-white text-center my-4">
-            <Heart className="w-12 h-12 mx-auto mb-3 text-white" />
-            <h3 className="text-white mb-2">He salvat {livesSaved} vides</h3>
-            <p className="text-white/90 text-sm">
-              {totalDonations} donacions amb el Banc de Sang
-            </p>
-            <div className="flex items-center justify-center gap-4 mt-4 pt-4 border-t border-white/20">
-              <div>
-                <p className="text-2xl text-white">{totalDonations}</p>
-                <p className="text-xs text-white/80">Donacions</p>
-              </div>
-              <div>
-                <p className="text-2xl text-white">{tokens}</p>
-                <p className="text-xs text-white/80">Tokens</p>
+          <div className="flex items-center space-x-2 mt-4">
+            <div className="grid flex-1 gap-2">
+              <div className="flex items-center justify-between bg-gray-100 p-3 rounded-lg">
+                <code className="text-sm font-mono font-bold text-[#E30613]">DONA-{user?.name?.substring(0, 3).toUpperCase() || 'USR'}2024</code>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    navigator.clipboard.writeText(`DONA-${user?.name?.substring(0, 3).toUpperCase() || 'USR'}2024`);
+                    toast.success('Codi copiat!');
+                  }}
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
               </div>
             </div>
           </div>
-
-          {/* Share Options */}
-          <div className="space-y-3">
-            <button
-              onClick={() => {
-                window.open(`https://www.instagram.com/`, '_blank');
-                toast.success('Obrint Instagram...');
-              }}
-              className="w-full p-3 rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors flex items-center gap-3"
-            >
-              <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
-                <Instagram className="w-5 h-5 text-white" />
-              </div>
-              <div className="flex-1 text-left">
-                <p className="text-sm">Instagram Stories</p>
-                <p className="text-xs text-gray-500">Compartir a Stories</p>
-              </div>
+          <div className="flex justify-center gap-4 mt-4">
+            <button className="p-3 bg-pink-100 text-pink-600 rounded-full hover:bg-pink-200 transition-colors">
+              <Instagram className="w-5 h-5" />
             </button>
-
-            <button
-              onClick={() => {
-                window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(`He salvat ${livesSaved} vides donant sang amb @BancSangTeixits! 💪❤️ #DonantDeSang`)}`, '_blank');
-                toast.success('Obrint Twitter...');
-              }}
-              className="w-full p-3 rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors flex items-center gap-3"
-            >
-              <div className="w-10 h-10 bg-blue-400 rounded-lg flex items-center justify-center">
-                <Twitter className="w-5 h-5 text-white" />
-              </div>
-              <div className="flex-1 text-left">
-                <p className="text-sm">Twitter/X</p>
-                <p className="text-xs text-gray-500">Compartir com a tweet</p>
-              </div>
+            <button className="p-3 bg-blue-100 text-blue-600 rounded-full hover:bg-blue-200 transition-colors">
+              <Twitter className="w-5 h-5" />
             </button>
-
-            <button
-              onClick={() => {
-                const message = `He salvat ${livesSaved} vides donant sang! 🩸❤️ Uneix-te a mi i dona sang amb el Banc de Sang i Teixits de Catalunya.`;
-                window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
-                toast.success('Obrint WhatsApp...');
-              }}
-              className="w-full p-3 rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors flex items-center gap-3"
-            >
-              <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
-                <MessageCircle className="w-5 h-5 text-white" />
-              </div>
-              <div className="flex-1 text-left">
-                <p className="text-sm">WhatsApp</p>
-                <p className="text-xs text-gray-500">Enviar missatge</p>
-              </div>
-            </button>
-
-            <button
-              onClick={async () => {
-                const shareUrl = 'https://donarsang.gencat.cat';
-                try {
-                  await navigator.clipboard.writeText(shareUrl);
-                  toast.success('Enllaç copiat al portapapers!');
-                } catch (error) {
-                  // Fallback si el clipboard API no està disponible
-                  toast.success('Enllaç: donarsang.gencat.cat');
-                }
-              }}
-              className="w-full p-3 rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors flex items-center gap-3"
-            >
-              <div className="w-10 h-10 bg-gray-600 rounded-lg flex items-center justify-center">
-                <Copy className="w-5 h-5 text-white" />
-              </div>
-              <div className="flex-1 text-left">
-                <p className="text-sm">Copiar enllaç</p>
-                <p className="text-xs text-gray-500">Compartir enllaç directe</p>
-              </div>
+            <button className="p-3 bg-green-100 text-green-600 rounded-full hover:bg-green-200 transition-colors">
+              <MessageCircle className="w-5 h-5" />
             </button>
           </div>
         </DialogContent>

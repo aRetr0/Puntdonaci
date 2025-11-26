@@ -1,19 +1,12 @@
-import { useState, useCallback } from 'react';
-import Map, { Marker, NavigationControl } from 'react-map-gl/maplibre';
+import { useState } from 'react';
+import Map, { Marker, NavigationControl, Popup } from 'react-map-gl/maplibre';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { MapPin, Navigation2, Locate } from 'lucide-react';
-
-interface DonationPoint {
-  id: number;
-  name: string;
-  address: string;
-  coords: [number, number];
-  type: 'fix' | 'mobile';
-  openNow: boolean;
-}
+import { MapPin, Navigation2, Locate, Truck, Building2 } from 'lucide-react';
+import { useDonationCenters } from '@/hooks/useDonationCenters';
+import { DonationCenter } from '@/types';
 
 interface InteractiveMapProps {
-  onPointClick?: (pointId: number) => void;
+  onPointClick?: (pointId: string) => void;
 }
 
 export function InteractiveMap({ onPointClick }: InteractiveMapProps) {
@@ -25,6 +18,9 @@ export function InteractiveMap({ onPointClick }: InteractiveMapProps) {
 
   const [userLocation, setUserLocation] = useState<[number, number]>([2.1734, 41.3851]);
   const [showUserLocation, setShowUserLocation] = useState(true);
+  const [selectedPoint, setSelectedPoint] = useState<DonationCenter | null>(null);
+
+  const { data: donationCenters = [] } = useDonationCenters();
 
   const handleLocateUser = () => {
     // Try to get actual geolocation
@@ -53,41 +49,6 @@ export function InteractiveMap({ onPointClick }: InteractiveMapProps) {
     }
   };
 
-  const donationPoints: DonationPoint[] = [
-    {
-      id: 1,
-      name: 'Hospital Clínic',
-      address: 'Carrer Villarroel, 170',
-      coords: [2.1550, 41.3886],
-      type: 'fix',
-      openNow: true
-    },
-    {
-      id: 2,
-      name: 'Universitat UB',
-      address: 'Gran Via, 585',
-      coords: [2.1658, 41.3860],
-      type: 'fix',
-      openNow: true
-    },
-    {
-      id: 3,
-      name: 'Plaça Catalunya',
-      address: 'Unitat Mòbil',
-      coords: [2.1704, 41.3874],
-      type: 'mobile',
-      openNow: true
-    },
-    {
-      id: 4,
-      name: 'Gràcia',
-      address: 'Carrer Gran de Gràcia, 128',
-      coords: [2.1586, 41.3995],
-      type: 'fix',
-      openNow: false
-    }
-  ];
-
   return (
     <div className="relative w-full h-full">
       <Map
@@ -98,7 +59,7 @@ export function InteractiveMap({ onPointClick }: InteractiveMapProps) {
       >
         {/* Navigation Controls */}
         <NavigationControl position="top-right" />
-        
+
         {/* User location marker */}
         {showUserLocation && (
           <Marker
@@ -114,56 +75,71 @@ export function InteractiveMap({ onPointClick }: InteractiveMapProps) {
         )}
 
         {/* Donation Point Markers */}
-        {donationPoints.map((point) => (
-          <Marker
-            key={point.id}
-            longitude={point.coords[0]}
-            latitude={point.coords[1]}
-            anchor="bottom"
-            onClick={() => onPointClick?.(point.id)}
-          >
-            <div 
-              className="cursor-pointer transform hover:scale-110 transition-transform"
-              style={{ filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.2))' }}
+        {donationCenters.map((point) => (
+          <div key={point.id}>
+            <Marker
+              longitude={point.coordinates.lng}
+              latitude={point.coordinates.lat}
+              anchor="bottom"
+              onClick={(e) => {
+                e.originalEvent.stopPropagation();
+                setSelectedPoint(point);
+                onPointClick?.(point.id);
+              }}
             >
-              {point.type === 'mobile' ? (
-                // Mobile unit marker
-                <div className="relative">
-                  <div className="w-12 h-12 bg-purple-600 rounded-full flex items-center justify-center border-3 border-white shadow-lg">
-                    <span className="text-2xl">🚐</span>
+              <div
+                className="cursor-pointer transform hover:scale-110 transition-transform group"
+                style={{ filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.2))' }}
+              >
+                {point.type === 'mobile' ? (
+                  // Mobile unit marker
+                  <div className="relative">
+                    <div className="w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center border-2 border-white shadow-lg">
+                      <Truck className="w-5 h-5 text-white" />
+                    </div>
+                    {point.openNow && (
+                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
+                    )}
                   </div>
-                  {point.openNow && (
-                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
-                  )}
-                </div>
-              ) : (
-                // Fixed location marker
-                <div className="relative">
-                  <div 
-                    className={`w-14 h-14 ${point.openNow ? 'bg-[#E30613]' : 'bg-gray-400'} rounded-full flex items-center justify-center border-3 border-white shadow-lg ${point.openNow ? 'animate-pulse' : ''}`}
-                  >
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="white">
-                      <path d="M12 2C9.243 2 7 4.243 7 7c0 2.5 5 11 5 11s5-8.5 5-11c0-2.757-2.243-5-5-5zm0 7c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/>
-                    </svg>
+                ) : (
+                  // Fixed location marker
+                  <div className="relative">
+                    <div
+                      className={`w-12 h-12 ${point.openNow ? 'bg-[#E30613]' : 'bg-gray-500'} rounded-full flex items-center justify-center border-2 border-white shadow-lg`}
+                    >
+                      <Building2 className="w-6 h-6 text-white" />
+                    </div>
+                    {point.openNow && (
+                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white animate-pulse"></div>
+                    )}
                   </div>
-                  {point.openNow && (
-                    <div className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-white animate-pulse"></div>
-                  )}
-                </div>
-              )}
-              
-              {/* Tooltip on hover */}
-              <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover:block whitespace-nowrap">
-                <div className="bg-white rounded-lg shadow-xl px-3 py-2 border border-gray-200">
-                  <p className="text-sm font-medium text-gray-900">{point.name}</p>
-                  <p className="text-xs text-gray-600">{point.address}</p>
-                  <span className={`text-xs ${point.openNow ? 'text-green-600' : 'text-gray-500'}`}>
-                    {point.openNow ? '● Obert' : '● Tancat'}
-                  </span>
-                </div>
+                )}
               </div>
-            </div>
-          </Marker>
+            </Marker>
+
+            {selectedPoint?.id === point.id && (
+              <Popup
+                longitude={point.coordinates.lng}
+                latitude={point.coordinates.lat}
+                anchor="top"
+                onClose={() => setSelectedPoint(null)}
+                closeOnClick={false}
+                className="z-50"
+              >
+                <div className="p-2 min-w-[200px]">
+                  <h3 className="font-bold text-gray-900 mb-1">{point.name}</h3>
+                  <p className="text-sm text-gray-600 mb-2">{point.address}</p>
+                  <div className="flex items-center gap-2">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${point.openNow ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                      }`}>
+                      {point.openNow ? 'Obert ara' : 'Tancat'}
+                    </span>
+                    <span className="text-xs text-gray-500 capitalize">{point.type === 'fix' ? 'Centre Fix' : 'Unitat Mòbil'}</span>
+                  </div>
+                </div>
+              </Popup>
+            )}
+          </div>
         ))}
       </Map>
 
@@ -193,7 +169,7 @@ export function InteractiveMap({ onPointClick }: InteractiveMapProps) {
             </div>
             <div>
               <p className="text-sm font-medium text-gray-900">
-                {donationPoints.filter(p => p.openNow).length} punts oberts
+                {donationCenters.filter(p => p.openNow).length} punts oberts
               </p>
               <p className="text-xs text-gray-600">Toca per veure detalls</p>
             </div>

@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { usersApi } from '@/api';
-import type { User } from '@/types';
+import type { User, NotificationSettings, PrivacySettings } from '@/types';
 
 export function useCurrentUser() {
   return useQuery({
@@ -24,7 +24,7 @@ export function useUpdateNotifications() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (settings: Record<string, unknown>) => usersApi.updateNotificationSettings(settings as any),
+    mutationFn: (settings: NotificationSettings) => usersApi.updateNotificationSettings(settings),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users', 'me'] });
     },
@@ -35,7 +35,7 @@ export function useUpdatePrivacy() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (settings: Record<string, unknown>) => usersApi.updatePrivacySettings(settings as any),
+    mutationFn: (settings: PrivacySettings) => usersApi.updatePrivacySettings(settings),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users', 'me'] });
     },

@@ -122,6 +122,7 @@ export async function redeemReward(
         transaction,
         message: 'Reward redeemed successfully',
       },
+      200,
       'Reward redeemed'
     );
   } catch (error) {
@@ -226,7 +227,7 @@ export async function cancelRewardTransaction(
     transaction.status = 'cancelled';
     await transaction.save();
 
-    sendSuccess(res, transaction, 'Transaction cancelled');
+    sendSuccess(res, transaction, 200, 'Transaction cancelled');
   } catch (error) {
     next(error);
   }

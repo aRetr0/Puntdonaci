@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { appointmentsApi } from '@/api';
-import type { DonationCenter } from '@/types';
+
 
 export function useDonationCenters() {
   return useQuery({

@@ -4,14 +4,12 @@ import { AuthenticationError } from '../utils/errors';
 import { User } from '../models';
 
 // Extend Express Request type to include user
-declare global {
-  namespace Express {
-    interface Request {
-      user?: {
-        userId: string;
-        email: string;
-      };
-    }
+declare module 'express-serve-static-core' {
+  interface Request {
+    user?: {
+      userId: string;
+      email: string;
+    };
   }
 }
 
@@ -49,8 +47,8 @@ export async function authenticate(
     };
 
     next();
-  } catch (error) {
-    next(error);
+  } catch {
+    res.status(401).json({ error: 'Token invàlid' });
   }
 }
 
@@ -79,7 +77,7 @@ export async function optionalAuth(
     }
 
     next();
-  } catch (error) {
+  } catch {
     // Continue without authentication
     next();
   }

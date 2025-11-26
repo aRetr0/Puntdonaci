@@ -22,7 +22,7 @@ async function startServer() {
       console.log(`\n🚀 Server started successfully!`);
       console.log(`📍 Environment: ${env.nodeEnv}`);
       console.log(`🌐 API URL: http://localhost:${env.port}`);
-      console.log(`🏥 Health check: http://localhost:${env.port}/health`);
+      console.log(`🏥 Health check: http://localhost:${env.port}/api/health`);
       console.log(`📡 CORS origin: ${env.corsOrigin}\n`);
     });
   } catch (error) {

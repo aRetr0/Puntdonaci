@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { campaignsApi } from '@/api';
-import type { Campaign } from '@/types';
+
 
 export function useCampaigns() {
   return useQuery({

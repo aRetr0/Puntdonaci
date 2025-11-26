@@ -32,7 +32,7 @@ export function verifyAccessToken(token: string): JwtPayload {
   try {
     const decoded = jwt.verify(token, env.jwtSecret) as JwtPayload;
     return decoded;
-  } catch (error) {
+  } catch {
     throw new AuthenticationError('Invalid or expired token');
   }
 }
@@ -44,7 +44,7 @@ export function verifyRefreshToken(token: string): JwtPayload {
   try {
     const decoded = jwt.verify(token, env.jwtRefreshSecret) as JwtPayload;
     return decoded;
-  } catch (error) {
+  } catch {
     throw new AuthenticationError('Invalid or expired refresh token');
   }
 }

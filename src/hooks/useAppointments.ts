@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { appointmentsApi } from '@/api';
-import type { Appointment, CreateAppointmentData, AvailabilityQuery } from '@/types';
+import type { CreateAppointmentRequest, AvailabilityQuery } from '@/types';
 
 export function useAppointments() {
   return useQuery({
@@ -29,7 +29,7 @@ export function useCreateAppointment() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: CreateAppointmentData) => appointmentsApi.createAppointment(data),
+    mutationFn: (data: CreateAppointmentRequest) => appointmentsApi.createAppointment(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
     },
