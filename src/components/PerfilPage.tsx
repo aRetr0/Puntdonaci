@@ -231,7 +231,14 @@ export function PerfilPage() {
   return (
     <div className="h-full overflow-y-auto bg-gray-50">
       {/* Profile Header with Glass Effect */}
-      <div className="glass-header text-white p-6 pb-8">
+      <div
+        className="text-white p-6 pb-8"
+        style={{
+          backgroundColor: 'rgba(227, 6, 19, 0.95)',
+          backdropFilter: 'saturate(180%) blur(20px)',
+          WebkitBackdropFilter: 'saturate(180%) blur(20px)',
+        }}
+      >
         <div className="flex items-center gap-4 mb-6">
           <div className="w-20 h-20 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/30">
             <User className="w-10 h-10 text-white" />

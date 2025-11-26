@@ -1,16 +1,18 @@
-import { Calendar, Coins, ChevronRight, AlertCircle, X, Target, Clock, Activity, Loader2 } from 'lucide-react';
+
+import { Calendar, Coins, ChevronRight, AlertCircle, X, Target, Clock, Activity, Loader2, Gift } from 'lucide-react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
-import { useActiveCampaigns } from '@/hooks';
-import type { Campaign } from '@/types';
+import { useActiveCampaigns, useRewards } from '@/hooks';
+import type { Campaign, Reward } from '@/types';
 
 export function HomePage() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
   const { data: campaignsResponse, isLoading: loadingCampaigns, error: campaignsError } = useActiveCampaigns();
+  const { data: rewardsResponse, isLoading: loadingRewards } = useRewards();
 
   const [selectedCampaign, setSelectedCampaign] = useState<string | null>(null);
   const [selectedDonationType, setSelectedDonationType] = useState<number | null>(null);
@@ -20,6 +22,8 @@ export function HomePage() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const campaigns = campaignsResponse || [];
+  const rewards = rewardsResponse || [];
+  const displayedRewards = rewards.slice(0, 2); // Show only first 2 rewards
 
   const donationTypes = [
     {
@@ -115,6 +119,10 @@ export function HomePage() {
     navigate('/app/calendari');
   };
 
+  const handleNavigateToRewards = () => {
+    navigate('/app/recompenses');
+  };
+
   const handleTouchStart = (e: React.TouchEvent) => {
     const scrollContainer = scrollContainerRef.current;
     if (scrollContainer && scrollContainer.scrollTop > 0) {
@@ -151,7 +159,14 @@ export function HomePage() {
   return (
     <div className="h-full overflow-y-auto bg-gray-50 relative">
       {/* Header with Glass Effect */}
-      <div className="glass-header text-white p-6 pb-8 md:py-8">
+      <div
+        className="text-white p-6 pb-8 md:py-8"
+        style={{
+          backgroundColor: 'rgba(227, 6, 19, 0.95)',
+          backdropFilter: 'saturate(180%) blur(20px)',
+          WebkitBackdropFilter: 'saturate(180%) blur(20px)',
+        }}
+      >
         <div className="max-w-4xl mx-auto md:px-8">
           <div className="flex items-center justify-between mb-6">
             <div>
@@ -240,13 +255,67 @@ export function HomePage() {
                       <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                         <div
                           className="h-full bg-[#E30613] rounded-full transition-all duration-500"
-                          style={{ width: `${progress}%` }}
+                          style={{ width: `${progress}% ` }}
                         />
                       </div>
                     </div>
                   </div>
                 );
               })}
+            </div>
+          )}
+        </section>
+
+        {/* Rewards Section */}
+        <section>
+          <div className="flex items-center justify-between mb-3 px-1">
+            <h3>Recompenses Disponibles</h3>
+            <button
+              className="text-[#E30613] text-sm flex items-center gap-1"
+              onClick={handleNavigateToRewards}
+            >
+              Veure tot
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          {loadingRewards ? (
+            <div className="flex items-center justify-center p-8">
+              <Loader2 className="w-8 h-8 animate-spin text-[#E30613]" />
+            </div>
+          ) : rewards.length === 0 ? (
+            <div className="bg-gray-50 rounded-xl p-8 text-center">
+              <p className="text-gray-600">No hi ha recompenses disponibles</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              {displayedRewards.map((reward: Reward) => (
+                <div
+                  key={reward.id}
+                  onClick={handleNavigateToRewards}
+                  className="bg-white rounded-2xl p-3 shadow-sm hover-lift cursor-pointer border border-gray-100"
+                >
+                  <div className="aspect-square rounded-xl bg-gray-50 mb-3 overflow-hidden relative">
+                    {reward.imageUrl ? (
+                      <img
+                        src={reward.imageUrl}
+                        alt={reward.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Gift className="w-8 h-8 text-gray-400" />
+                      </div>
+                    )}
+                    <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg text-xs font-medium flex items-center gap-1 shadow-sm">
+                      <Coins className="w-3 h-3 text-[#E30613]" />
+                      {reward.tokensRequired}
+                    </div>
+                  </div>
+                  <h4 className="text-sm font-medium line-clamp-1 mb-1">{reward.title}</h4>
+                  <p className="text-xs text-gray-500 line-clamp-1">{reward.description}</p>
+                </div>
+              ))}
             </div>
           )}
         </section>
@@ -358,7 +427,7 @@ export function HomePage() {
                     <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
                       <div
                         className="h-full bg-gradient-to-r from-[#E30613] to-[#FF4444] rounded-full transition-all duration-500"
-                        style={{ width: `${Math.round((selectedCampaignData.currentDonations / selectedCampaignData.targetDonations) * 100)}%` }}
+                        style={{ width: `${Math.round((selectedCampaignData.currentDonations / selectedCampaignData.targetDonations) * 100)}% ` }}
                       />
                     </div>
                   </div>
@@ -428,7 +497,7 @@ export function HomePage() {
               <div className="p-6 space-y-6">
                 <div
                   className="rounded-2xl p-8 text-center"
-                  style={{ backgroundColor: `${selectedDonationData.color}15` }}
+                  style={{ backgroundColor: `${selectedDonationData.color} 15` }}
                 >
                   <div className="text-6xl mb-3">{selectedDonationData.icon}</div>
                   <h3 className="mb-2">{selectedDonationData.type}</h3>

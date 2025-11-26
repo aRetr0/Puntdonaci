@@ -81,7 +81,14 @@ export function RecompensesPage() {
   return (
     <div className="h-full flex flex-col bg-gray-50 relative">
       {/* Header with Glass Effect */}
-      <div className="glass-header text-white p-6">
+      <div
+        className="text-white p-6"
+        style={{
+          backgroundColor: 'rgba(227, 6, 19, 0.95)',
+          backdropFilter: 'saturate(180%) blur(20px)',
+          WebkitBackdropFilter: 'saturate(180%) blur(20px)',
+        }}
+      >
         <h2 className="text-white mb-2">Les teves Recompenses</h2>
         <div className="flex items-center gap-2">
           <Coins className="w-6 h-6" />

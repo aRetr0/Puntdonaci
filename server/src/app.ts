@@ -57,6 +57,8 @@ export function createApp(): Application {
     });
   });
 
+
+
   // API routes
   app.use('/api/auth', authRoutes);
   app.use('/api/users', usersRoutes);

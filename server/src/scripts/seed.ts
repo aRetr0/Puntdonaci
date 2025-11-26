@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { DonationCenter } from '../models/DonationCenter';
 import { Campaign } from '../models/Campaign';
+import { Reward } from '../models/Reward';
 import { env } from '../config/env';
 
 async function seed() {
@@ -13,6 +14,7 @@ async function seed() {
         console.log('Clearing existing data...');
         await DonationCenter.deleteMany({});
         await Campaign.deleteMany({});
+        await Reward.deleteMany({});
 
         console.log('Seeding Donation Centers...');
         const centers = await DonationCenter.create([
@@ -157,6 +159,86 @@ async function seed() {
                 requirements: ['Grup sanguini O-', 'Major de 18 anys'],
                 benefits: ['Prioritat sense cita', 'Obsequi especial'],
                 participatingCenters: centers.map(c => c._id.toString()),
+            }
+        ]);
+
+        console.log('Seeding Rewards...');
+        await Reward.create([
+            {
+                title: 'Entrada Festival Cruïlla',
+                description: 'Entrada de dia per al Festival Cruïlla 2025. Gaudeix de la millor música en directe.',
+                shortDescription: 'Entrada de dia per al Festival Cruïlla',
+                longDescription: 'Aconsegueix una entrada de dia per al Festival Cruïlla 2025 al Parc del Fòrum de Barcelona. Podràs triar el dia que prefereixis (dijous, divendres o dissabte) fins a exhaurir existències. Viu l\'experiència Cruïlla amb els teus tokens solidaris.',
+                imageUrl: 'https://images.unsplash.com/photo-1459749411177-0473ef716070?auto=format&fit=crop&q=80',
+                category: 'festivals',
+                tokensRequired: 150,
+                status: 'available',
+                stockAvailable: 50,
+                totalStock: 50,
+                validUntil: new Date('2025-07-10'),
+                termsAndConditions: ['Vàlid per a una persona', 'No reemborsable', 'Subjecte a disponibilitat'],
+                redemptionInstructions: 'Rebràs un codi al teu correu electrònic. Canvia\'l a la web oficial del festival.',
+                features: ['Accés al recinte', 'Tots els concerts del dia'],
+                restrictions: ['Majors de 16 anys'],
+                howToRedeem: ['Bescanvia els tokens', 'Rep el codi', 'Entra a cruillabarcelona.com', 'Introdueix el codi'],
+                partnerName: 'Festival Cruïlla'
+            },
+            {
+                title: 'Entrades Cinema Cinesa',
+                description: 'Pack de 2 entrades per a qualsevol pel·lícula i sessió als cinemes Cinesa.',
+                shortDescription: '2 entrades de cinema',
+                longDescription: 'Gaudeix del millor cinema amb qui tu vulguis. Aquest pack inclou 2 entrades vàlides per a qualsevol dia de la setmana a tots els cinemes Cinesa de Catalunya (excepte sales Luxe i esdeveniments especials).',
+                imageUrl: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&q=80',
+                category: 'experiences',
+                tokensRequired: 80,
+                status: 'available',
+                stockAvailable: 100,
+                totalStock: 100,
+                validUntil: new Date('2025-12-31'),
+                termsAndConditions: ['No vàlid per sales Luxe', 'Caduca als 6 mesos'],
+                redemptionInstructions: 'Presenta el codi QR a la taquilla del cinema.',
+                features: ['2 entrades', 'Qualsevol dia'],
+                restrictions: ['No inclou crispetes'],
+                howToRedeem: ['Bescanvia els tokens', 'Mostra el QR a taquilla'],
+                partnerName: 'Cinesa'
+            },
+            {
+                title: 'Targeta Regal Spotify',
+                description: '3 mesos de subscripció Premium a Spotify. Música sense anuncis i sense límits.',
+                shortDescription: '3 mesos Spotify Premium',
+                longDescription: 'Escolta la teva música preferida sense interrupcions. Amb aquesta targeta regal tindràs 3 mesos de Spotify Premium individual. Descàrrega cançons, escolta sense connexió i salta tantes cançons com vulguis.',
+                imageUrl: 'https://images.unsplash.com/photo-1614680376593-902f74cf0d41?auto=format&fit=crop&q=80',
+                category: 'discounts',
+                tokensRequired: 60,
+                status: 'available',
+                stockAvailable: 200,
+                totalStock: 200,
+                validUntil: new Date('2026-01-01'),
+                termsAndConditions: ['Només per a comptes individuals', 'No acumulable'],
+                redemptionInstructions: 'Activa el codi a spotify.com/redeem',
+                features: ['Sense anuncis', 'Mode offline'],
+                restrictions: ['Comptes nous o existents'],
+                howToRedeem: ['Bescanvia els tokens', 'Ves a spotify.com/redeem', 'Introdueix el codi'],
+                partnerName: 'Spotify'
+            },
+            {
+                title: 'Sopar per a 2 - Flax & Kale',
+                description: 'Menú degustació healthy per a dues persones al restaurant Flax & Kale.',
+                shortDescription: 'Sopar healthy per a 2',
+                longDescription: 'Descobreix la cuina flexitariana més innovadora de Barcelona. El menú inclou entrants per compartir, plat principal, postres i beguda. Una experiència gastronòmica saludable i deliciosa.',
+                imageUrl: 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&q=80',
+                category: 'experiences',
+                tokensRequired: 120,
+                status: 'low_stock',
+                stockAvailable: 5,
+                totalStock: 20,
+                validUntil: new Date('2025-06-30'),
+                termsAndConditions: ['Reserva prèvia necessària', 'Subjecte a disponibilitat'],
+                redemptionInstructions: 'Truca al restaurant i indica que tens un val de PuntDonació.',
+                features: ['Menú complet', 'Beguda inclosa'],
+                restrictions: ['No vàlid festius'],
+                howToRedeem: ['Bescanvia els tokens', 'Truca per reservar', 'Mostra el codi al restaurant'],
+                partnerName: 'Flax & Kale'
             }
         ]);
 

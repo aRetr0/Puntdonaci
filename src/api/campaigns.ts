@@ -9,9 +9,12 @@ export const campaignsApi = {
    * Get all active campaigns
    */
   async getCampaigns(status?: string): Promise<Campaign[]> {
-    const response = await apiClient.get<Campaign[]>('/campaigns', { status });
+    const response = await apiClient.get<any[]>('/campaigns', { status });
     if (response.success && response.data) {
-      return response.data;
+      return response.data.map((item: any) => ({
+        ...item,
+        id: item._id || item.id,
+      }));
     }
     throw new Error(response.error || 'Failed to get campaigns');
   },
@@ -20,9 +23,12 @@ export const campaignsApi = {
    * Get a specific campaign by ID
    */
   async getCampaign(id: string): Promise<CampaignDetail> {
-    const response = await apiClient.get<CampaignDetail>(`/campaigns/${id}`);
+    const response = await apiClient.get<any>(`/campaigns/${id}`);
     if (response.success && response.data) {
-      return response.data;
+      return {
+        ...response.data,
+        id: response.data._id || response.data.id,
+      };
     }
     throw new Error(response.error || 'Failed to get campaign');
   },

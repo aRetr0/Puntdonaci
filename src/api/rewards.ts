@@ -16,9 +16,12 @@ export const rewardsApi = {
    * Get all available rewards
    */
   async getRewards(category?: string): Promise<Reward[]> {
-    const response = await apiClient.get<Reward[]>('/rewards', { category });
+    const response = await apiClient.get<any[]>('/rewards', { category });
     if (response.success && response.data) {
-      return response.data;
+      return response.data.map((item: any) => ({
+        ...item,
+        id: item._id || item.id,
+      }));
     }
     throw new Error(response.error || 'Failed to get rewards');
   },
@@ -27,9 +30,12 @@ export const rewardsApi = {
    * Get a specific reward by ID
    */
   async getReward(id: string): Promise<RewardDetail> {
-    const response = await apiClient.get<RewardDetail>(`/rewards/${id}`);
+    const response = await apiClient.get<any>(`/rewards/${id}`);
     if (response.success && response.data) {
-      return response.data;
+      return {
+        ...response.data,
+        id: response.data._id || response.data.id,
+      };
     }
     throw new Error(response.error || 'Failed to get reward');
   },
